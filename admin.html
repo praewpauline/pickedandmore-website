@@ -318,7 +318,12 @@
       <div class="field-group"><div class="field-label">ราคาป้าย (เยน)</div><input type="number" id="np-price-jpy" placeholder="880" /></div>
       <div class="field-group"><div class="field-label">สต็อก *</div><input type="number" id="np-stock" placeholder="10" /></div>
       <div class="field-group"><div class="field-label">หมวดหมู่</div><input type="text" id="np-category" placeholder="เครื่องสำอาง / ขนม / สกินแคร์" /></div>
-      <div class="field-group"><div class="field-label">URL รูปสินค้า</div><input type="text" id="np-img" placeholder="https://..." /></div>
+      <div class="field-group">
+        <div class="field-label">รูปสินค้า <span style="font-weight:400;color:#9a8878;font-size:12px">(เลือกได้หลายรูป — auto ย่อขนาด)</span></div>
+        <div id="img-gallery-new" style="margin-bottom:8px"></div>
+        <button type="button" class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="document.getElementById('np-img-file').click()">📷 เพิ่มรูป</button>
+        <input type="file" id="np-img-file" accept="image/jpeg,image/png,image/webp,image/heic,image/*" multiple style="display:none" onchange="uploadNewProductImgs(this)" />
+      </div>
       <div class="field-group">
         <div class="field-label">ตัวเลือก (variants) — JSON</div>
         <textarea id="np-variants" placeholder='[{"name":"สี","options":["ชมพู","ขาว"]},{"name":"ไซส์","options":["S","M","L"]}]'></textarea>
@@ -608,8 +613,10 @@ async function deleteTracking(trackId, orderId) {
 // ===================== PRODUCTS =====================
 let editingProductId = null;
 
+let allProducts = [];
 async function loadProducts() {
   const { data } = await db.from('products').select('*').order('created_at', { ascending: false });
+  allProducts = data || [];
   const el = document.getElementById('productsList');
   if (!data || !data.length) { el.innerHTML = '<div class="empty">ยังไม่มีสินค้า</div>'; return; }
 
@@ -638,7 +645,11 @@ async function loadProducts() {
       + '<div class="field-group"><div class="field-label">ราคาป้าย (เยน)</div><input type="number" id="pe-jpy-' + p.id + '" value="' + (p.price_jpy || '') + '" /></div>'
       + '<div class="field-group"><div class="field-label">สต็อก</div><input type="number" id="pe-stock-' + p.id + '" value="' + p.stock + '" /></div>'
       + '<div class="field-group"><div class="field-label">หมวดหมู่</div><input type="text" id="pe-cat-' + p.id + '" value="' + (p.category || '') + '" /></div>'
-      + '<div class="field-group"><div class="field-label">URL รูป</div><input type="text" id="pe-img-' + p.id + '" value="' + (p.image_url || '') + '" /></div>'
+      + '<div class="field-group"><div class="field-label">รูปสินค้า <span style="font-weight:400;color:#9a8878;font-size:12px">(เลือกได้หลายรูป)</span></div>'
+      + '<div id="img-gallery-' + p.id + '" style="margin-bottom:8px"></div>'
+      + '<button type="button" class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="document.getElementById(\'pe-img-file-' + p.id + '\').click()">📷 เพิ่มรูป</button>'
+      + '<input type="file" id="pe-img-file-' + p.id + '" accept="image/*" multiple style="display:none" onchange="uploadMultipleImgs(this,\'' + p.id + '\')" />'
+      + '</div>'
       + '<div class="field-group"><div class="field-label">Variants (JSON)</div><textarea id="pe-var-' + p.id + '">' + (p.variants ? JSON.stringify(p.variants) : '[]') + '</textarea></div>'
       + '<div class="btn-row"><button class="btn btn-dark" onclick="saveProduct(\'' + p.id + '\')">บันทึก</button><button class="btn btn-outline" onclick="toggleProductEdit(\'' + p.id + '\')">ยกเลิก</button></div>'
       + '</div>'
@@ -664,21 +675,144 @@ async function addProduct() {
     price_thb: thb,
     price_jpy: parseFloat(document.getElementById('np-price-jpy').value) || null,
     stock, category: document.getElementById('np-category').value,
-    image_url: document.getElementById('np-img').value || null,
+    image_url: (window._newProductImgs && window._newProductImgs[0]) || null,
+    images: window._newProductImgs || [],
     variants, is_available: true
   });
 
-  ['np-name','np-desc','np-price-thb','np-price-jpy','np-stock','np-category','np-img','np-variants']
+  ['np-name','np-desc','np-price-thb','np-price-jpy','np-stock','np-category','np-variants']
     .forEach(function(id) { document.getElementById(id).value = ''; });
+  window._newProductImgs = [];
+  renderNewProductImgs();
   toggleAddProduct();
   loadProducts();
 }
 
 function toggleProductEdit(id) {
   document.getElementById('pedit-' + id).classList.toggle('open');
+  // init existing images from product data
+  const p = allProducts.find(function(x) { return x.id === id; });
+  if (p) {
+    if (!window._productImgs) window._productImgs = {};
+    const existingImgs = p.images && p.images.length ? p.images : (p.image_url ? [p.image_url] : []);
+    window._productImgs[id] = existingImgs.slice();
+    renderImgGalleryAdmin(id);
+  }
 }
 
-function parseVariantsJson(str) {
+// compress + upload single image → returns public URL
+  async function compressAndUpload(file) {
+    return new Promise(function(resolve, reject) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = async function() {
+          const MAX = 900;
+          let w = img.width, h = img.height;
+          if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+          if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          canvas.toBlob(async function(blob) {
+            try {
+              const path = 'products/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.jpg';
+              const { error } = await db.storage.from('product-images').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+              if (error) throw error;
+              const { data } = db.storage.from('product-images').getPublicUrl(path);
+              resolve(data.publicUrl);
+            } catch(err) { reject(err); }
+          }, 'image/jpeg', 0.82);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // upload multiple images for a product, update gallery UI
+  async function uploadMultipleImgs(input, productId) {
+    const files = Array.from(input.files);
+    if (!files.length) return;
+    const btn = input.previousElementSibling;
+    btn.textContent = 'กำลังอัพโหลด...';
+    btn.disabled = true;
+    try {
+      for (const file of files) {
+        const url = await compressAndUpload(file);
+        // add to in-memory list
+        if (!window._productImgs) window._productImgs = {};
+        if (!window._productImgs[productId]) window._productImgs[productId] = [];
+        window._productImgs[productId].push(url);
+        renderImgGalleryAdmin(productId);
+      }
+    } catch(e) { alert('อัพโหลดไม่สำเร็จ: ' + e.message); }
+    btn.textContent = '📷 เพิ่มรูป';
+    btn.disabled = false;
+  }
+
+  function renderImgGalleryAdmin(productId) {
+    const imgs = (window._productImgs && window._productImgs[productId]) || [];
+    const wrap = document.getElementById('img-gallery-' + productId);
+    if (!wrap) return;
+    wrap.innerHTML = imgs.map(function(url, i) {
+      return '<div style="position:relative;display:inline-block;margin:4px">'
+        + '<img src="' + url + '" style="height:72px;width:72px;object-fit:cover;border-radius:8px;border:1px solid #EAD9C8" />'
+        + '<button onclick="removeImgAdmin(\'' + productId + '\',' + i + ')" style="position:absolute;top:-6px;right:-6px;background:#e53935;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1">✕</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  function removeImgAdmin(productId, idx) {
+    if (window._productImgs && window._productImgs[productId]) {
+      window._productImgs[productId].splice(idx, 1);
+      renderImgGalleryAdmin(productId);
+    }
+  }
+
+  // legacy single-image upload (for fallback)
+  async function uploadProductImg(input, urlFieldId, previewId) {
+    const file = input.files[0];
+    if (!file) return;
+    const urlField = document.getElementById(urlFieldId);
+    const preview = document.getElementById(previewId);
+    urlField.value = 'กำลังอัพโหลด...';
+    try {
+      const url = await compressAndUpload(file);
+      urlField.value = url;
+      if (preview) { preview.src = url; preview.style.display = 'block'; }
+    } catch(e) { urlField.value = ''; alert('อัพโหลดไม่สำเร็จ: ' + e.message); }
+  }
+
+  async function uploadNewProductImgs(input) {
+    const files = Array.from(input.files);
+    if (!files.length) return;
+    const btn = input.previousElementSibling;
+    btn.textContent = 'กำลังอัพโหลด...'; btn.disabled = true;
+    if (!window._newProductImgs) window._newProductImgs = [];
+    try {
+      for (const file of files) {
+        const url = await compressAndUpload(file);
+        window._newProductImgs.push(url);
+        renderNewProductImgs();
+      }
+    } catch(e) { alert('อัพโหลดไม่สำเร็จ: ' + e.message); }
+    btn.textContent = '📷 เพิ่มรูป'; btn.disabled = false;
+  }
+
+  function renderNewProductImgs() {
+    const imgs = window._newProductImgs || [];
+    const wrap = document.getElementById('img-gallery-new');
+    if (!wrap) return;
+    wrap.innerHTML = imgs.map(function(url, i) {
+      return '<div style="position:relative;display:inline-block;margin:4px">'
+        + '<img src="' + url + '" style="height:72px;width:72px;object-fit:cover;border-radius:8px;border:1px solid #EAD9C8" />'
+        + '<button onclick="window._newProductImgs.splice(' + i + ',1);renderNewProductImgs()" style="position:absolute;top:-6px;right:-6px;background:#e53935;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1">✕</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  function parseVariantsJson(str) {
   try {
     let v = JSON.parse(str || '[]');
     // flatten กรณี [[...]] (สองชั้น)
@@ -697,7 +831,8 @@ async function saveProduct(id) {
     price_jpy: parseFloat(document.getElementById('pe-jpy-' + id).value) || null,
     stock: parseInt(document.getElementById('pe-stock-' + id).value) || 0,
     category: document.getElementById('pe-cat-' + id).value,
-    image_url: document.getElementById('pe-img-' + id).value || null,
+    images: (window._productImgs && window._productImgs[id]) || [],
+    image_url: ((window._productImgs && window._productImgs[id] && window._productImgs[id][0]) || null),
     variants
   }).eq('id', id);
   loadProducts();

@@ -360,9 +360,48 @@
       border-radius: 2px;
       margin: 0 auto 20px;
     }
+    .modal-gallery {
+      position: relative;
+      margin-bottom: 14px;
+    }
+    .modal-gallery-img {
+      width: 100%; height: 240px;
+      object-fit: cover;
+      border-radius: 14px;
+      display: block;
+    }
+    .gallery-arrow {
+      position: absolute;
+      top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,0.85);
+      border: none;
+      border-radius: 50%;
+      width: 34px; height: 34px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+      z-index: 2;
+    }
+    .gallery-arrow-left  { left: 8px; }
+    .gallery-arrow-right { right: 8px; }
+    .modal-gallery-dots {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 8px;
+    }
+    .modal-gallery-dots span {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #D4B89A;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .modal-gallery-dots span.active { background: #8B6F5C; }
     .modal-img {
       width: 100%;
-      max-height: 220px;
+      max-height: 240px;
       object-fit: cover;
       border-radius: 14px;
       margin-bottom: 16px;
@@ -470,7 +509,7 @@
 <header>
   <div class="logo">picked<span>and</span>more</div>
   <div class="header-right">
-    <a href="status.html" class="header-icon" title="ติดตามออเดอร์" style="font-size:20px">📦</a>
+    <a href="track.html" class="header-icon" title="ติดตามออเดอร์" style="font-size:20px">📦</a>
     <a href="order.html" class="header-icon" title="สั่งซื้อ" style="font-size:20px">🛒</a>
   </div>
 </header>
@@ -583,7 +622,7 @@
     </span>
     <span>ตะกร้า</span>
   </a>
-  <a href="status.html" class="bottom-nav-item">
+  <a href="track.html" class="bottom-nav-item">
     <span class="nav-icon" style="font-size:22px">📦</span>
     <span>ติดตามออเดอร์</span>
   </a>
@@ -730,8 +769,8 @@
       if (error || !data) throw error;
       allProducts = data;
 
-      // load categories from categories table, fallback to product categories
-      await buildCategories(data);
+      // load categories — non-fatal if fails
+      try { await buildCategories(data); } catch(e) { buildCategoriesFromProducts(data); }
 
       renderProducts(data);
     } catch(e) {
@@ -756,9 +795,9 @@
     }
     grid.innerHTML = products.map((p, i) => {
       const img = p.image_url
-        ? '<img class="product-img" src="' + p.image_url + '" alt="' + p.name + '" loading="lazy" />'
+        ? '<img class="product-img" src="' + p.image_url + '" alt="' + p.name + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" /><div class="product-img-placeholder" style="display:none"></div>'
         : '<div class="product-img-placeholder"></div>';
-      return '<div class="product-card" style="animation-delay:' + (i * 0.05) + 's" onclick="openModal(' + JSON.stringify(p).replace(/"/g, '&quot;') + ')">'
+      return '<div class="product-card" style="animation-delay:' + (i * 0.05) + 's" onclick="openModalById(\'' + p.id + '\')">'
         + img
         + '<div class="product-info">'
         + '<div class="product-name">' + p.name + '</div>'
@@ -768,6 +807,11 @@
   }
 
   // ─── MODAL ───
+  function openModalById(id) {
+    const product = allProducts.find(p => p.id === id);
+    if (product) openModal(product);
+  }
+
   function openModal(product) {
     selectedProduct = product;
     modalQty = 1;
@@ -775,9 +819,29 @@
     document.getElementById('modalQtyNum').textContent = '1';
 
     const imgWrap = document.getElementById('modalImgWrap');
-    imgWrap.innerHTML = product.image_url
-      ? '<img class="modal-img" src="' + product.image_url + '" alt="' + product.name + '" />'
-      : '<div class="modal-img-placeholder">🛍️</div>';
+    // build images array: prefer product.images[], fall back to image_url
+    let imgs = [];
+    if (product.images && product.images.length) {
+      imgs = product.images;
+    } else if (product.image_url) {
+      imgs = [product.image_url];
+    }
+    if (imgs.length > 1) {
+      window._galleryImgs = imgs;
+      window._galleryIdx = 0;
+      imgWrap.innerHTML = '<div class="modal-gallery" id="modalGallery">'
+        + '<img class="modal-gallery-img" id="galleryMainImg" src="' + imgs[0] + '" alt="' + product.name + '" />'
+        + '<button class="gallery-arrow gallery-arrow-left" onclick="galleryNav(-1)">‹</button>'
+        + '<button class="gallery-arrow gallery-arrow-right" onclick="galleryNav(1)">›</button>'
+        + '<div class="modal-gallery-dots" id="galleryDots">'
+        + imgs.map(function(_, i) { return '<span class="' + (i === 0 ? 'active' : '') + '" onclick="galleryNav(' + i + ',true)"></span>'; }).join('')
+        + '</div>'
+        + '</div>';
+    } else if (imgs.length === 1) {
+      imgWrap.innerHTML = '<img class="modal-img" src="' + imgs[0] + '" alt="' + product.name + '" onerror="this.style.display=\'none\'" />';
+    } else {
+      imgWrap.innerHTML = '<div class="modal-img-placeholder">🛍️</div>';
+    }
     document.getElementById('modalName').textContent = product.name;
     document.getElementById('modalDesc').textContent = product.description || '';
     document.getElementById('modalPrice').textContent = '฿ ' + Number(product.price_thb).toLocaleString();
@@ -801,6 +865,22 @@
     }
 
     document.getElementById('modalOverlay').classList.add('show');
+  }
+
+  function galleryNav(delta, absolute) {
+    const imgs = window._galleryImgs;
+    if (!imgs) return;
+    if (absolute) {
+      window._galleryIdx = delta;
+    } else {
+      window._galleryIdx = (window._galleryIdx + delta + imgs.length) % imgs.length;
+    }
+    const idx = window._galleryIdx;
+    const mainImg = document.getElementById('galleryMainImg');
+    if (mainImg) mainImg.src = imgs[idx];
+    document.querySelectorAll('#galleryDots span').forEach(function(d, i) {
+      d.classList.toggle('active', i === idx);
+    });
   }
 
   function selectModalVariant(btn, varName, option) {
