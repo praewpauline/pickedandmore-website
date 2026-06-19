@@ -385,15 +385,13 @@
     </div>
   </div>
 
-  <!-- เลือกสินค้า -->
-  <div class="section" id="productSection">
-    <div class="section-label">เลือกสินค้า <span class="required">*</span></div>
-    <div class="product-list" id="productList">
-      <div style="text-align:center;color:#aaa;padding:20px">กำลังโหลด...</div>
-    </div>
+  <!-- ตะกร้าสินค้า -->
+  <div class="section" id="cartSection">
+    <div class="section-label">สินค้าในตะกร้า <span class="required">*</span></div>
+    <div id="cartList"></div>
     <div class="form-group" style="margin-top:14px;margin-bottom:0">
-      <label>หมายเหตุสินค้า (สี, ขนาด, อื่นๆ)</label>
-      <textarea id="orderNotes" placeholder="ระบุถ้ามี เช่น ขอสี Pink, ไซส์ M"></textarea>
+      <label>หมายเหตุเพิ่มเติม</label>
+      <textarea id="orderNotes" placeholder="ระบุถ้ามี เช่น ฝากซื้อเพิ่ม, นัดรับ"></textarea>
     </div>
   </div>
 
@@ -459,11 +457,16 @@
 
 <script src="config.js"></script>
 <script>
-  let products = [];
-  let cart = {};           // productId -> quantity
-  let cartVariants = {};   // productId -> { "สี": "ชมพู", "ไซส์": "M" }
   let flightRoundId = null;
   let slipFile = null;
+
+  // ─── CART (localStorage) ───
+  const CART_KEY = 'pickedandmore_cart';
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem(CART_KEY) || '{}'); } catch(e) { return {}; }
+  }
+  function saveCart(cart) { localStorage.setItem(CART_KEY, JSON.stringify(cart)); }
+  function clearCart() { localStorage.removeItem(CART_KEY); }
 
   // แสดง QR โอนเงิน
   function renderPaymentQr() {
@@ -476,7 +479,6 @@
   }
 
   async function loadData() {
-    // โหลดรอบบิน (maybeSingle = ไม่ error ถ้าไม่มีรอบบิน)
     try {
       const { data: round } = await db
         .from('flight_rounds')
@@ -486,103 +488,51 @@
         .limit(1)
         .maybeSingle();
       if (round) flightRoundId = round.id;
-    } catch(e) { /* ไม่มีรอบบิน ไม่เป็นไร */ }
-
-    // โหลดสินค้า
-    try {
-      const { data, error } = await db
-        .from('products')
-        .select('*')
-        .eq('is_available', true)
-        .order('category');
-
-      if (error) console.error('Products error:', error);
-      products = data || [];
-    } catch(e) {
-      console.error('Load products error:', e);
-      products = [];
-    }
-
-    renderProductList();
-
-    // ถ้ามีสินค้าที่เลือกจากหน้าหลัก
-    const selected = sessionStorage.getItem('selectedProduct');
-    if (selected) {
-      try {
-        const p = JSON.parse(selected);
-        cart[p.id] = 1;
-        renderProductList();
-      } catch(e) {}
-      sessionStorage.removeItem('selectedProduct');
-    }
+    } catch(e) {}
+    renderCartList();
   }
 
-  function buildVariantHtml(p, qty) {
-    let variants = p.variants || [];
-    // แก้กรณีที่ข้อมูลถูกเก็บแบบ [[...]] (สองชั้น) แทน [...]
-    if (variants.length > 0 && Array.isArray(variants[0])) {
-      variants = variants[0];
-    }
-    if (!variants.length) return '';
-    let html = '<div class="variant-section' + (qty > 0 ? ' show' : '') + '" id="variants-' + p.id + '">';
-    variants.forEach(function(v) {
-      if (!v || !v.name || !v.options) return; // safety check
-      html += '<div class="variant-group">';
-      html += '<div class="variant-label">' + v.name + '</div>';
-      html += '<div class="variant-chips">';
-      v.options.forEach(function(opt) {
-        const sel = ((cartVariants[p.id] || {})[v.name] === opt) ? ' selected' : '';
-        html += '<button class="variant-chip' + sel + '" onclick="selectVariant(\'' + p.id + '\',\'' + v.name + '\',\'' + opt + '\',this)">' + opt + '</button>';
-      });
-      html += '</div></div>';
-    });
-    html += '</div>';
-    return html;
-  }
-
-  function renderProductList() {
-    const list = document.getElementById('productList');
-    if (!products.length) {
-      list.innerHTML = '<div style="text-align:center;color:#aaa">ไม่มีสินค้าในขณะนี้</div>';
+  function renderCartList() {
+    const cart = getCart();
+    const list = document.getElementById('cartList');
+    const keys = Object.keys(cart);
+    if (!keys.length) {
+      list.innerHTML = '<div style="text-align:center;padding:24px;color:#aaa">ตะกร้าว่างเปล่า<br/><a href="index.html" style="color:#402D21;font-weight:600;text-decoration:none">← กลับเลือกสินค้า</a></div>';
+      updateSummary();
       return;
     }
-    let html = '';
-    products.forEach(function(p) {
-      const qty = cart[p.id] || 0;
-      const qtyHtml = '<div class="qty-control"><button class="qty-btn" onclick="changeQty(\'' + p.id + '\',-1)">−</button><span class="qty-num" id="qty-' + p.id + '">' + qty + '</span><button class="qty-btn" onclick="changeQty(\'' + p.id + '\',1)">+</button></div>';
-      html += '<div class="product-row' + (qty > 0 ? ' selected' : '') + '" id="row-' + p.id + '">';
-      html += '<div class="product-row-top">';
-      html += '<div class="product-row-info">';
-      html += '<div class="product-row-name">' + p.name + '</div>';
-      html += '<div class="product-row-price">฿' + Number(p.price_thb).toLocaleString() + '</div>';
-      html += '</div>' + qtyHtml + '</div>';
-      html += buildVariantHtml(p, qty);
-      html += '</div>';
-    });
-    list.innerHTML = html;
+    list.innerHTML = keys.map(function(key) {
+      const item = cart[key];
+      const variantText = Object.entries(item.variants || {}).map(function([k,v]) { return k + ': ' + v; }).join(', ');
+      return '<div class="product-row selected" id="row-' + key + '">'
+        + '<div class="product-row-top">'
+        + '<div class="product-row-info">'
+        + '<div class="product-row-name">' + item.name + '</div>'
+        + '<div class="product-row-price">฿ ' + Number(item.price_thb).toLocaleString() + '</div>'
+        + (variantText ? '<div class="product-row-stock">' + variantText + '</div>' : '')
+        + '</div>'
+        + '<div class="qty-control">'
+        + '<button class="qty-btn" onclick="changeCartQty(\'' + key + '\',-1)">−</button>'
+        + '<span class="qty-num" id="qty-' + key + '">' + item.qty + '</span>'
+        + '<button class="qty-btn" onclick="changeCartQty(\'' + key + '\',1)">+</button>'
+        + '</div></div></div>';
+    }).join('');
     updateSummary();
   }
 
-  function selectVariant(productId, variantName, option, btn) {
-    if (!cartVariants[productId]) cartVariants[productId] = {};
-    cartVariants[productId][variantName] = option;
-    // อัปเดต chip ที่เลือก
-    const group = btn.closest('.variant-chips');
-    group.querySelectorAll('.variant-chip').forEach(c => c.classList.remove('selected'));
-    btn.classList.add('selected');
-  }
-
-  function changeQty(id, delta) {
-    const product = products.find(p => p.id === id);
-    const current = cart[id] || 0;
-    const newQty = Math.max(0, Math.min(current + delta, 99));
-    if (newQty === 0) { delete cart[id]; delete cartVariants[id]; }
-    else cart[id] = newQty;
-    document.getElementById(`qty-${id}`).textContent = newQty;
-    document.getElementById(`row-${id}`).classList.toggle('selected', newQty > 0);
-    // แสดง/ซ่อน variants
-    const variantSection = document.getElementById(`variants-${id}`);
-    if (variantSection) variantSection.classList.toggle('show', newQty > 0);
+  function changeCartQty(key, delta) {
+    const cart = getCart();
+    if (!cart[key]) return;
+    const newQty = Math.max(0, cart[key].qty + delta);
+    if (newQty === 0) {
+      delete cart[key];
+      saveCart(cart);
+      renderCartList();
+      return;
+    }
+    cart[key].qty = newQty;
+    saveCart(cart);
+    document.getElementById('qty-' + key).textContent = newQty;
     updateSummary();
   }
 
@@ -605,17 +555,18 @@
   }
 
   function updateSummary() {
-    const items = Object.entries(cart);
+    const cart = getCart();
+    const keys = Object.keys(cart);
     const section = document.getElementById('summarySection');
-    if (!items.length) { section.style.display = 'none'; return; }
+    if (!keys.length) { section.style.display = 'none'; return; }
 
     section.style.display = 'block';
     let subtotal = 0;
-    const rows = items.map(([id, qty]) => {
-      const p = products.find(p => p.id === id);
-      const sub = p.price_thb * qty;
+    const rows = keys.map(function(key) {
+      const item = cart[key];
+      const sub = item.price_thb * item.qty;
       subtotal += sub;
-      return `<div class="summary-row"><span>${p.name} × ${qty}</span><span>฿${sub.toLocaleString()}</span></div>`;
+      return '<div class="summary-row"><span>' + item.name + ' × ' + item.qty + '</span><span>฿ ' + sub.toLocaleString() + '</span></div>';
     });
     const shipping = getShippingFee();
     const total = subtotal + shipping;
@@ -648,8 +599,8 @@
       alert('กรุณากรอกชื่อ, LINE ID และที่อยู่จัดส่งค่ะ');
       return;
     }
-    if (!Object.keys(cart).length) {
-      alert('กรุณาเลือกสินค้าอย่างน้อย 1 ชิ้นค่ะ');
+    if (!Object.keys(getCart()).length) {
+      alert('ตะกร้าว่างเปล่าค่ะ กรุณาเลือกสินค้าก่อนนะคะ');
       return;
     }
     if (!document.querySelector('input[name="shipping"]:checked')) {
@@ -662,12 +613,12 @@
     btn.textContent = 'กำลังส่งออเดอร์...';
 
     try {
-      // คำนวณยอดรวม
+      // คำนวณยอดรวมจาก cart
+      const cartData = getCart();
+      const cartKeys = Object.keys(cartData);
+      if (!cartKeys.length) { alert('ตะกร้าว่างเปล่าค่ะ'); btn.disabled = false; btn.textContent = 'ยืนยันการสั่งซื้อ'; return; }
       let subtotal = 0;
-      Object.entries(cart).forEach(([id, qty]) => {
-        const p = products.find(p => p.id === id);
-        subtotal += p.price_thb * qty;
-      });
+      cartKeys.forEach(function(key) { subtotal += cartData[key].price_thb * cartData[key].qty; });
       const shippingFee = getShippingFee();
       const total = subtotal + shippingFee;
 
@@ -691,17 +642,16 @@
 
       if (orderError) throw orderError;
 
-      // เพิ่ม order_items (รวม variants ที่เลือก)
-      const items = Object.entries(cart).map(([id, qty]) => {
-        const p = products.find(p => p.id === id);
-        const selectedVariants = cartVariants[id] || {};
-        const variantNote = Object.entries(selectedVariants).map(([k,v]) => `${k}: ${v}`).join(', ');
+      // เพิ่ม order_items จาก cart
+      const items = cartKeys.map(function(key) {
+        const item = cartData[key];
+        const variantNote = Object.entries(item.variants || {}).map(function([k,v]) { return k + ': ' + v; }).join(', ');
         return {
           order_id: order.id,
-          product_id: id,
-          product_name: p.name,
-          quantity: qty,
-          price_thb: p.price_thb,
+          product_id: item.product_id,
+          product_name: item.name,
+          quantity: item.qty,
+          price_thb: item.price_thb,
           notes: variantNote || null
         };
       });
@@ -722,6 +672,9 @@
           await db.from('orders').update({ status: 'paid' }).eq('id', order.id);
         }
       }
+
+      // ล้างตะกร้า
+      clearCart();
 
       // แสดงหน้าสำเร็จ
       document.getElementById('orderForm').style.display = 'none';
@@ -746,12 +699,12 @@
   // PROGRESS STEPS — update based on scroll position of sections
   function updateProgress() {
     const sections = document.querySelectorAll('.section');
-    const productSection = document.getElementById('productSection');
+    const cartSection = document.getElementById('cartSection');
     const paymentSection = document.getElementById('paymentSection');
-    if (!productSection || !paymentSection) return;
+    if (!cartSection || !paymentSection) return;
 
     const scroll = window.scrollY + window.innerHeight * 0.4;
-    const p2top = productSection.getBoundingClientRect().top + window.scrollY;
+    const p2top = cartSection.getBoundingClientRect().top + window.scrollY;
     const p3top = paymentSection.getBoundingClientRect().top + window.scrollY;
 
     const s1 = document.getElementById('step1');
@@ -774,11 +727,11 @@
 
   // STICKY TOTAL — update when qty changes
   function updateStickyTotal() {
+    const cart = getCart();
     let total = 0; let count = 0;
-    quantities.forEach((qty, id) => {
-      if (qty <= 0) return;
-      const p = products.find(p => p.id === id);
-      if (p) { total += p.price_thb * qty; count += qty; }
+    Object.values(cart).forEach(function(item) {
+      total += item.price_thb * item.qty;
+      count += item.qty;
     });
     const bar = document.getElementById('stickyTotalBar');
     if (!bar) return;
@@ -793,13 +746,7 @@
   }
 
   window.addEventListener('scroll', updateProgress, { passive: true });
-
-  // patch changeQty to also update sticky total
-  const _origChangeQty = changeQty;
-  function changeQty(productId, delta) {
-    _origChangeQty(productId, delta);
-    updateStickyTotal();
-  }
+  updateStickyTotal();
 </script>
 
 <!-- Sticky Total Bar -->

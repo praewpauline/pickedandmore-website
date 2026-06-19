@@ -385,6 +385,35 @@
       margin-bottom: 20px;
     }
     .modal-actions { display: flex; gap: 10px; }
+    /* variants in modal */
+    .modal-variants { margin-bottom: 16px; }
+    .modal-variant-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+    .modal-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .modal-chip {
+      padding: 6px 14px; border: 1.5px solid #EAD9C8; border-radius: 20px;
+      font-size: 13px; background: #fff; cursor: pointer; color: #402D21;
+      font-family: 'Noto Sans Thai', sans-serif;
+    }
+    .modal-chip.selected { background: #402D21; color: #fff; border-color: #402D21; }
+    /* qty in modal */
+    .modal-qty { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+    .modal-qty-label { font-size: 13px; color: #666; flex: 1; }
+    .modal-qty-ctrl { display: flex; align-items: center; gap: 12px; }
+    .modal-qty-btn {
+      width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #CFB59E;
+      background: #fff; font-size: 18px; line-height: 1; cursor: pointer; color: #402D21;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-qty-num { font-size: 16px; font-weight: 600; min-width: 24px; text-align: center; }
+    /* cart badge */
+    .cart-badge {
+      position: absolute; top: -4px; right: -6px;
+      background: #402D21; color: #fff;
+      font-size: 10px; font-weight: 700;
+      min-width: 16px; height: 16px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 4px; display: none;
+    }
     .btn-secondary {
       flex: 1; padding: 14px;
       border: 1px solid #ddd7d0;
@@ -526,9 +555,18 @@
     <div class="modal-title" id="modalName"></div>
     <div class="modal-desc" id="modalDesc"></div>
     <div class="modal-price" id="modalPrice"></div>
+    <div class="modal-variants" id="modalVariants"></div>
+    <div class="modal-qty">
+      <span class="modal-qty-label">จำนวน</span>
+      <div class="modal-qty-ctrl">
+        <button class="modal-qty-btn" onclick="changeModalQty(-1)">−</button>
+        <span class="modal-qty-num" id="modalQtyNum">1</span>
+        <button class="modal-qty-btn" onclick="changeModalQty(1)">+</button>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModalDirect()">ปิด</button>
-      <button class="btn-primary" id="modalOrderBtn" onclick="goOrder()">สั่งซื้อเลย</button>
+      <button class="btn-primary" id="modalOrderBtn" onclick="addToCart()">เพิ่มในตะกร้า</button>
     </div>
   </div>
 </div>
@@ -539,9 +577,11 @@
     <span class="nav-icon" style="font-size:22px">🏠</span>
     <span>หน้าหลัก</span>
   </a>
-  <a href="order.html" class="bottom-nav-item">
-    <span class="nav-icon" style="font-size:22px">🛒</span>
-    <span>สั่งซื้อ</span>
+  <a href="order.html" class="bottom-nav-item" style="position:relative">
+    <span class="nav-icon" style="font-size:22px;position:relative;display:inline-block">
+      🛒<span class="cart-badge" id="cartBadge"></span>
+    </span>
+    <span>ตะกร้า</span>
   </a>
   <a href="status.html" class="bottom-nav-item">
     <span class="nav-icon" style="font-size:22px">📦</span>
@@ -554,6 +594,26 @@
   let allProducts = [];
   let currentCategory = 'all';
   let selectedProduct = null;
+  let modalQty = 1;
+  let modalVariants = {};   // { "สี": "ชมพู" }
+
+  // ─── CART (localStorage) ───
+  const CART_KEY = 'pickedandmore_cart';
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem(CART_KEY) || '{}'); } catch(e) { return {}; }
+  }
+  function saveCart(cart) {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    updateCartBadge();
+  }
+  function updateCartBadge() {
+    const cart = getCart();
+    const total = Object.values(cart).reduce(function(s, item) { return s + item.qty; }, 0);
+    const badge = document.getElementById('cartBadge');
+    if (!badge) return;
+    if (total > 0) { badge.textContent = total; badge.style.display = 'flex'; }
+    else { badge.style.display = 'none'; }
+  }
 
   // ─── SVG PICTOGRAM MAP ───
   const SVGS = {
@@ -710,25 +770,91 @@
   // ─── MODAL ───
   function openModal(product) {
     selectedProduct = product;
+    modalQty = 1;
+    modalVariants = {};
+    document.getElementById('modalQtyNum').textContent = '1';
+
     const imgWrap = document.getElementById('modalImgWrap');
     imgWrap.innerHTML = product.image_url
       ? '<img class="modal-img" src="' + product.image_url + '" alt="' + product.name + '" />'
       : '<div class="modal-img-placeholder">🛍️</div>';
     document.getElementById('modalName').textContent = product.name;
     document.getElementById('modalDesc').textContent = product.description || '';
-    document.getElementById('modalPrice').textContent = '฿' + Number(product.price_thb).toLocaleString();
-    document.getElementById('modalOrderBtn').disabled = false;
+    document.getElementById('modalPrice').textContent = '฿ ' + Number(product.price_thb).toLocaleString();
+
+    // render variants
+    let variants = product.variants || [];
+    if (variants.length > 0 && Array.isArray(variants[0])) variants = variants[0];
+    const varWrap = document.getElementById('modalVariants');
+    if (variants.length > 0) {
+      varWrap.innerHTML = variants.map(function(v) {
+        return '<div class="modal-variants" style="margin-bottom:12px">'
+          + '<div class="modal-variant-label">' + v.name + '</div>'
+          + '<div class="modal-chips">'
+          + v.options.map(function(opt) {
+              return '<button class="modal-chip" onclick="selectModalVariant(this,\'' + v.name + '\',\'' + opt + '\')">' + opt + '</button>';
+            }).join('')
+          + '</div></div>';
+      }).join('');
+    } else {
+      varWrap.innerHTML = '';
+    }
+
     document.getElementById('modalOverlay').classList.add('show');
   }
+
+  function selectModalVariant(btn, varName, option) {
+    modalVariants[varName] = option;
+    btn.closest('.modal-chips').querySelectorAll('.modal-chip').forEach(function(c) { c.classList.remove('selected'); });
+    btn.classList.add('selected');
+  }
+
+  function changeModalQty(delta) {
+    modalQty = Math.max(1, Math.min(99, modalQty + delta));
+    document.getElementById('modalQtyNum').textContent = modalQty;
+  }
+
+  function addToCart() {
+    if (!selectedProduct) return;
+    const cart = getCart();
+    const id = selectedProduct.id;
+    const variantKey = JSON.stringify(modalVariants);
+    const cartId = id + '_' + variantKey;
+    if (cart[cartId]) {
+      cart[cartId].qty += modalQty;
+    } else {
+      cart[cartId] = {
+        product_id: id,
+        name: selectedProduct.name,
+        price_thb: selectedProduct.price_thb,
+        image_url: selectedProduct.image_url || null,
+        qty: modalQty,
+        variants: Object.assign({}, modalVariants)
+      };
+    }
+    saveCart(cart);
+    closeModalDirect();
+    showAddedToast();
+  }
+
+  function showAddedToast() {
+    let toast = document.getElementById('addedToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'addedToast';
+      toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#402D21;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:200;opacity:0;transition:opacity 0.3s';
+      toast.textContent = '✓ เพิ่มในตะกร้าแล้ว';
+      document.body.appendChild(toast);
+    }
+    toast.style.opacity = '1';
+    setTimeout(function() { toast.style.opacity = '0'; }, 1800);
+  }
+
   function closeModal(e) {
     if (e.target === document.getElementById('modalOverlay')) closeModalDirect();
   }
   function closeModalDirect() {
     document.getElementById('modalOverlay').classList.remove('show');
-  }
-  function goOrder() {
-    if (selectedProduct) sessionStorage.setItem('selectedProduct', JSON.stringify(selectedProduct));
-    window.location.href = 'order.html';
   }
 
   async function buildCategories(productData) {
@@ -761,6 +887,7 @@
   loadSiteSettings();
   loadFlightRound();
   loadProducts();
+  updateCartBadge();
 </script>
 </body>
 </html>
