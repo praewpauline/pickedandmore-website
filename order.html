@@ -427,8 +427,8 @@
   <div class="section" id="summarySection" style="display:none">
     <div class="section-label">สรุปออเดอร์</div>
     <div id="summaryItems"></div>
-    <div style="display:flex;justify-content:space-between;font-size:13px;color:#9a8878;padding:8px 0 4px">
-      <span>ค่าจัดส่ง</span>
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:#9a8878;padding:8px 0 4px;align-items:center">
+      <span id="summaryShippingLabel">ค่าจัดส่ง</span>
       <span id="summaryShipping">฿ 0</span>
     </div>
     <div class="summary-total">
@@ -584,7 +584,16 @@
     });
     const shipping = getShippingFee();
     const total = subtotal + shipping;
+
+    const shipLabel = document.getElementById('ship40').checked ? 'ส่งปกติ (EMS)'
+      : document.getElementById('shipCombine').checked ? 'รวมออเดอร์กับที่โอนไปแล้ว'
+      : 'ลูกค้าคอนโด (ไม่มีค่าส่ง)';
+    const shipColor = document.getElementById('shipCombine').checked ? '#856404' : '#9a8878';
+    const shipBg = document.getElementById('shipCombine').checked ? '#FFF3CD' : 'transparent';
+
     document.getElementById('summaryItems').innerHTML = rows.join('');
+    document.getElementById('summaryShippingLabel').innerHTML =
+      'ค่าจัดส่ง <span style="font-size:11px;background:' + shipBg + ';color:' + shipColor + ';border-radius:6px;padding:1px 7px;margin-left:4px">' + shipLabel + '</span>';
     document.getElementById('summaryShipping').textContent = '฿ ' + shipping.toLocaleString();
     document.getElementById('summaryTotal').textContent = '฿ ' + total.toLocaleString();
   }
