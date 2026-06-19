@@ -913,6 +913,7 @@
       const { data, error } = await db
         .from('products').select('*')
         .eq('is_available', true)
+        .order('sort_order', { ascending: true })
         .order('created_at', { ascending: false });
       if (error || !data) throw error;
       allProducts = data;

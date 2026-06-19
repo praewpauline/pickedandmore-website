@@ -626,7 +626,7 @@ let editingProductId = null;
 
 let allProducts = [];
 async function loadProducts() {
-  const { data } = await db.from('products').select('*').order('created_at', { ascending: false });
+  const { data } = await db.from('products').select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false });
   allProducts = data || [];
   const el = document.getElementById('productsList');
   if (!data || !data.length) { el.innerHTML = '<div class="empty">ยังไม่มีสินค้า</div>'; return; }
@@ -645,6 +645,8 @@ async function loadProducts() {
       + '<div class="product-item-meta">สต็อก: ' + p.stock + ' · ' + (p.category || '—') + ' · ' + (p.is_available ? '✅ แสดงอยู่' : '🚫 ซ่อนอยู่') + '</div>'
       + '</div></div>'
       + '<div class="btn-row">'
+      + '<button class="btn btn-sm btn-outline" style="padding:6px 10px;font-size:16px;line-height:1" onclick="moveProduct(\'' + p.id + '\',-1)" title="ขึ้น">↑</button>'
+      + '<button class="btn btn-sm btn-outline" style="padding:6px 10px;font-size:16px;line-height:1" onclick="moveProduct(\'' + p.id + '\',1)" title="ลง">↓</button>'
       + '<button class="btn btn-sm btn-outline" onclick="toggleProductEdit(\'' + p.id + '\')">แก้ไข</button>'
       + '<button class="btn btn-sm ' + (p.is_available ? 'btn-danger' : 'btn-dark') + '" onclick="toggleVisible(\'' + p.id + '\',' + !p.is_available + ')">' + (p.is_available ? 'ซ่อน' : 'แสดง') + '</button>'
       + '<button class="btn btn-sm btn-danger" onclick="deleteProduct(\'' + p.id + '\')">ลบ</button>'
@@ -696,6 +698,26 @@ async function addProduct() {
   window._newProductImgs = [];
   renderNewProductImgs();
   toggleAddProduct();
+  loadProducts();
+}
+
+async function moveProduct(id, direction) {
+  // find current product and its neighbour
+  const idx = allProducts.findIndex(function(p) { return p.id === id; });
+  if (idx === -1) return;
+  const swapIdx = idx + direction;
+  if (swapIdx < 0 || swapIdx >= allProducts.length) return;
+
+  const a = allProducts[idx];
+  const b = allProducts[swapIdx];
+
+  // assign new sort_order values: swap their positions
+  const orderA = idx;
+  const orderB = swapIdx;
+
+  await db.from('products').update({ sort_order: orderB }).eq('id', a.id);
+  await db.from('products').update({ sort_order: orderA }).eq('id', b.id);
+
   loadProducts();
 }
 
