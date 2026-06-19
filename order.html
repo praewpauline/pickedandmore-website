@@ -395,18 +395,6 @@
     </div>
   </div>
 
-  <!-- แนบสลิป -->
-  <div class="section" id="paymentSection">
-    <div class="section-label">ช่องทางโอนเงิน</div>
-    <div id="paymentQrBox"></div>
-    <div class="slip-upload-area" onclick="document.getElementById('slipInput').click()">
-      <div class="icon">📎</div>
-      <p>แตะเพื่อแนบสลิปโอนเงิน<br/>รองรับ JPG, PNG</p>
-    </div>
-    <input type="file" id="slipInput" accept="image/*" onchange="previewSlip(this)" />
-    <img id="slipPreview" class="slip-preview" />
-  </div>
-
   <!-- ค่าจัดส่ง -->
   <div class="section">
     <div class="section-label">ค่าจัดส่งในไทย <span class="required">*</span></div>
@@ -442,7 +430,19 @@
     </div>
   </div>
 
-  <button class="submit-btn" id="submitBtn" onclick="submitOrder()">ยืนยันการสั่งซื้อ</button>
+  <!-- ช่องทางโอนเงิน + แนบสลิป -->
+  <div class="section" id="paymentSection">
+    <div class="section-label">ช่องทางโอนเงิน</div>
+    <div id="paymentQrBox"></div>
+    <div class="slip-upload-area" onclick="document.getElementById('slipInput').click()">
+      <div class="icon">📎</div>
+      <p>แตะเพื่อแนบสลิปโอนเงิน<br/>รองรับ JPG, PNG</p>
+    </div>
+    <input type="file" id="slipInput" accept="image/*" onchange="previewSlip(this)" />
+    <img id="slipPreview" class="slip-preview" />
+  </div>
+
+  <button class="submit-btn" id="submitBtn" disabled onclick="submitOrder()" style="opacity:0.45;cursor:not-allowed">ยืนยันการสั่งซื้อ</button>
 </div>
 
 <!-- หน้าสำเร็จ -->
@@ -542,7 +542,6 @@
   }
 
   function updateShipping() {
-    // highlight selected option
     document.querySelectorAll('[id^="ship-label-"]').forEach(el => {
       el.style.borderColor = '#EAD9C8'; el.style.background = '#fff';
     });
@@ -550,6 +549,11 @@
     if (sel) {
       const lbl = document.getElementById('ship-label-' + sel.value);
       if (lbl) { lbl.style.borderColor = '#402D21'; lbl.style.background = '#FEFAF8'; }
+      // unlock submit button
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
     }
     updateSummary();
   }
