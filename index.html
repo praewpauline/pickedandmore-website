@@ -867,8 +867,8 @@
     document.getElementById('modalOverlay').classList.add('show');
   }
 
-  // swipe support
-  let _swipeX = null;
+  // swipe (touch) + drag (mouse) support
+  let _swipeX = null, _dragX = null;
   document.addEventListener('touchstart', function(e) {
     const g = document.getElementById('modalGallery');
     if (g && g.contains(e.target)) _swipeX = e.touches[0].clientX;
@@ -880,6 +880,17 @@
     if (Math.abs(dx) < 40) return;
     galleryNav(dx < 0 ? 1 : -1);
   }, { passive: true });
+  document.addEventListener('mousedown', function(e) {
+    const g = document.getElementById('modalGallery');
+    if (g && g.contains(e.target)) _dragX = e.clientX;
+  });
+  document.addEventListener('mouseup', function(e) {
+    if (_dragX === null) return;
+    const dx = e.clientX - _dragX;
+    _dragX = null;
+    if (Math.abs(dx) < 40) return;
+    galleryNav(dx < 0 ? 1 : -1);
+  });
 
   function galleryNav(delta, absolute) {
     const imgs = window._galleryImgs;
