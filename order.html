@@ -580,7 +580,10 @@
       const item = cart[key];
       const sub = item.price_thb * item.qty;
       subtotal += sub;
-      return '<div class="summary-row"><span>' + item.name + ' × ' + item.qty + '</span><span>฿ ' + sub.toLocaleString() + '</span></div>';
+      const variantText = Object.entries(item.variants || {}).map(function(e) { return e[1]; }).join(', ');
+      return '<div class="summary-row"><span>' + item.name + ' × ' + item.qty
+        + (variantText ? '<br><span style="font-size:11px;color:#9a8878">' + variantText + '</span>' : '')
+        + '</span><span>฿ ' + sub.toLocaleString() + '</span></div>';
     });
     const shipping = getShippingFee();
     const total = subtotal + shipping;
