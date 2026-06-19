@@ -85,13 +85,20 @@
       background: #fff;
       border-bottom: 1px solid #EAD9C8;
       position: sticky; top: 49px; z-index: 9;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
     }
+    .tabs::-webkit-scrollbar { display: none; }
     .tab-btn {
-      flex: 1; padding: 14px 8px;
+      flex: none;
+      min-width: 80px;
+      padding: 14px 16px;
       border: none; background: none;
       font-size: 13px; font-family: 'Noto Sans Thai', sans-serif;
       color: #9a8878; cursor: pointer;
-      border-bottom: 2px solid transparent;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
     }
     .tab-btn.active { color: #402D21; font-weight: 600; border-bottom-color: #402D21; }
 
@@ -146,15 +153,15 @@
     textarea { resize: none; height: 70px; }
 
     .btn {
-      padding: 10px 18px; border-radius: 8px; border: none;
-      font-size: 13px; font-weight: 600;
+      padding: 12px 18px; border-radius: 10px; border: none;
+      font-size: 14px; font-weight: 600;
       font-family: 'Noto Sans Thai', sans-serif;
-      cursor: pointer;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
     }
     .btn-dark { background: #402D21; color: #fff; }
     .btn-outline { background: #fff; color: #402D21; border: 1px solid #ddd7d0; }
     .btn-danger { background: #fce4ec; color: #c62828; }
-    .btn-sm { padding: 7px 14px; font-size: 12px; }
+    .btn-sm { padding: 9px 14px; font-size: 13px; }
     .btn-full { width: 100%; }
     .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
@@ -569,8 +576,20 @@ async function loadOrders() {
       + '</select></div>'
       + '<div class="field-label">เลขพัสดุ</div>'
       + trackHtml
+      + '<div style="margin-top:20px;padding-top:14px;border-top:1px solid #f0ebe4">'
+      + '<button class="btn btn-sm btn-danger btn-full" onclick="deleteOrder(\'' + o.id + '\')">🗑 ลบออเดอร์นี้</button>'
+      + '</div>'
       + '</div></div></div>';
   }).join('');
+}
+
+async function deleteOrder(orderId) {
+  if (!confirm('ลบออเดอร์นี้ถาวรเลยนะคะ? ไม่สามารถกู้คืนได้')) return;
+  await db.from('order_items').delete().eq('order_id', orderId);
+  await db.from('slips').delete().eq('order_id', orderId);
+  await db.from('tracking').delete().eq('order_id', orderId);
+  await db.from('orders').delete().eq('id', orderId);
+  loadOrders();
 }
 
 async function cancelItem(itemId, orderId) {
@@ -644,15 +663,15 @@ async function loadProducts() {
       + '<div class="product-item-price">฿' + Number(p.price_thb).toLocaleString() + (p.price_jpy ? ' (¥' + Number(p.price_jpy).toLocaleString() + ')' : '') + '</div>'
       + '<div class="product-item-meta">สต็อก: ' + p.stock + ' · ' + (p.category || '—') + ' · ' + (p.is_available ? '✅ แสดงอยู่' : '🚫 ซ่อนอยู่') + '</div>'
       + '</div>'
-      + '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;margin-left:8px">'
-      + '<div style="font-size:9px;color:#b0a090;letter-spacing:0.5px">ลำดับ</div>'
-      + '<input type="number" min="0" value="' + (p.sort_order || 0) + '" style="width:52px;padding:5px 6px;border:1px solid #ddd7d0;border-radius:8px;font-size:14px;text-align:center;font-family:\'Josefin Sans\',sans-serif;font-weight:600;color:#402D21" onchange="setSortOrder(\'' + p.id + '\',this.value)" />'
-      + '</div>'
       + '</div>'
       + '<div class="btn-row">'
       + '<button class="btn btn-sm btn-outline" onclick="toggleProductEdit(\'' + p.id + '\')">แก้ไข</button>'
       + '<button class="btn btn-sm ' + (p.is_available ? 'btn-danger' : 'btn-dark') + '" onclick="toggleVisible(\'' + p.id + '\',' + !p.is_available + ')">' + (p.is_available ? 'ซ่อน' : 'แสดง') + '</button>'
       + '<button class="btn btn-sm btn-danger" onclick="deleteProduct(\'' + p.id + '\')">ลบ</button>'
+      + '<div style="display:flex;align-items:center;gap:6px;margin-left:auto">'
+      + '<span style="font-size:11px;color:#b0a090">ลำดับ</span>'
+      + '<input type="number" min="0" value="' + (p.sort_order || 0) + '" style="width:56px;padding:8px 6px;border:1px solid #ddd7d0;border-radius:8px;font-size:14px;text-align:center;font-family:\'Josefin Sans\',sans-serif;font-weight:600;color:#402D21" onchange="setSortOrder(\'' + p.id + '\',this.value)" />'
+      + '</div>'
       + '</div>'
       + '<div class="product-edit-form" id="pedit-' + p.id + '">'
       + '<div class="field-group"><div class="field-label">ชื่อสินค้า</div><input type="text" id="pe-name-' + p.id + '" value="' + p.name.replace(/"/g,'&quot;') + '" /></div>'
