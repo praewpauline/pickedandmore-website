@@ -532,7 +532,9 @@ async function loadOrders() {
       ? '<div class="field-label" style="margin-top:12px">สลิปโอนเงิน</div><img src="' + slip.slip_url + '" class="slip-img" onclick="viewImage(\'' + slip.slip_url + '\')" />'
         + '<div class="btn-row">'
         + '<button class="btn btn-sm ' + (slip.verified ? 'btn-outline' : 'btn-dark') + '" onclick="verifySlip(\'' + slip.id + '\', ' + !slip.verified + ', this)">'
-        + (slip.verified ? '✓ ยืนยันแล้ว' : 'ยืนยันสลิป') + '</button></div>'
+        + (slip.verified ? '✓ ยืนยันแล้ว' : 'ยืนยันสลิป') + '</button>'
+        + '<a class="btn btn-sm btn-outline" href="' + slip.slip_url + '" download target="_blank" style="text-decoration:none">💾 บันทึกรูป</a>'
+        + '</div>'
       : '<div style="font-size:12px;color:#aaa;margin-top:8px">ยังไม่มีสลิป</div>';
 
     const trackHtml = track
