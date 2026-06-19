@@ -442,11 +442,12 @@ const STATUS_LABELS = {
   in_transit: 'กำลังหิ้ว',
   shipped: 'จัดส่งแล้ว',
   delivered: 'ได้รับแล้ว',
-  cancelled: 'ยกเลิก'
+  cancelled: 'ยกเลิก',
+  refund_pending: 'รอโอนเงินคืน'
 };
 const STATUS_CLASS = {
   pending_payment: 'badge-pending', paid: 'badge-paid', confirmed: 'badge-confirmed',
-  in_transit: 'badge-transit', shipped: 'badge-shipped', delivered: 'badge-delivered', cancelled: 'badge-cancelled'
+  in_transit: 'badge-transit', shipped: 'badge-shipped', delivered: 'badge-delivered', cancelled: 'badge-cancelled', refund_pending: 'badge-cancelled'
 };
 
 function formatDate(d) {
@@ -496,8 +497,24 @@ async function loadOrders() {
     const track = o.tracking && o.tracking.length ? o.tracking[0] : null;
 
     const itemsHtml = (o.order_items || []).map(function(i) {
-      return '<div class="item-line"><span>' + i.product_name + ' × ' + i.quantity + (i.notes ? '<br><span class="item-note">'+i.notes+'</span>' : '') + '</span><span>฿' + (i.price_thb * i.quantity).toLocaleString() + '</span></div>';
+      const cancelled = i.cancelled;
+      const itemTotal = i.price_thb * i.quantity;
+      const nameHtml = cancelled
+        ? '<span style="text-decoration:line-through;color:#aaa">' + i.product_name + ' × ' + i.quantity + '</span> <span style="font-size:11px;background:#fce4ec;color:#c62828;padding:2px 7px;border-radius:10px">สินค้าหมด</span>'
+        : i.product_name + ' × ' + i.quantity + (i.notes ? '<br><span class="item-note">'+i.notes+'</span>' : '');
+      const priceHtml = cancelled
+        ? '<span style="text-decoration:line-through;color:#aaa">฿' + itemTotal.toLocaleString() + '</span>'
+        : '฿' + itemTotal.toLocaleString();
+      const cancelBtn = cancelled
+        ? ''
+        : '<button class="btn btn-sm" style="font-size:11px;padding:3px 8px;background:#fff;border:1px solid #ddd;color:#c62828;margin-left:8px" onclick="cancelItem(\'' + i.id + '\',\'' + o.id + '\')">ยกเลิก</button>';
+      return '<div class="item-line" style="align-items:center"><span>' + nameHtml + '</span><span style="display:flex;align-items:center">' + priceHtml + cancelBtn + '</span></div>';
     }).join('');
+
+    const refundAmt = o.refund_amount || 0;
+    const refundHtml = refundAmt > 0
+      ? '<div style="display:flex;justify-content:space-between;font-size:13px;color:#c62828;padding-top:4px">ยอดคืนเงิน <span>฿' + Number(refundAmt).toLocaleString() + '</span></div>'
+      : '';
 
     const slipHtml = slip
       ? '<div class="field-label" style="margin-top:12px">สลิปโอนเงิน</div><img src="' + slip.slip_url + '" class="slip-img" onclick="viewImage(\'' + slip.slip_url + '\')" />'
@@ -528,6 +545,7 @@ async function loadOrders() {
       + '<div class="field-label" style="margin-top:12px">รายการสินค้า</div>'
       + itemsHtml
       + '<div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;padding-top:8px">รวม <span>฿' + Number(o.total_price).toLocaleString() + '</span></div>'
+      + refundHtml
       + slipHtml
       + '<div class="field-group" style="margin-top:12px"><div class="field-label">อัปเดตสถานะ</div>'
       + '<select id="status-' + o.id + '" onchange="updateStatus(\'' + o.id + '\')">'
@@ -537,6 +555,27 @@ async function loadOrders() {
       + trackHtml
       + '</div></div></div>';
   }).join('');
+}
+
+async function cancelItem(itemId, orderId) {
+  if (!confirm('ยกเลิกรายการนี้เพราะสินค้าหมด?')) return;
+
+  // mark item cancelled
+  await db.from('order_items').update({ cancelled: true, cancel_reason: 'สินค้าหมดจากหน้าร้าน' }).eq('id', itemId);
+
+  // recalculate refund = sum of cancelled items for this order
+  const { data: items } = await db.from('order_items').select('*').eq('order_id', orderId);
+  const refund = (items || []).filter(function(i) { return i.cancelled; }).reduce(function(sum, i) { return sum + (i.price_thb * i.quantity); }, 0);
+
+  // check if all items cancelled
+  const allCancelled = (items || []).every(function(i) { return i.cancelled; });
+
+  await db.from('orders').update({
+    refund_amount: refund,
+    status: allCancelled ? 'cancelled' : 'refund_pending'
+  }).eq('id', orderId);
+
+  loadOrders();
 }
 
 async function updateStatus(orderId) {

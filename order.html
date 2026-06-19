@@ -409,10 +409,35 @@
     <img id="slipPreview" class="slip-preview" />
   </div>
 
+  <!-- ค่าจัดส่ง -->
+  <div class="section">
+    <div class="section-label">ค่าจัดส่งในไทย <span class="required">*</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px 14px;border:1.5px solid #EAD9C8;border-radius:12px;background:#fff" id="ship-label-40">
+        <input type="radio" name="shipping" id="ship40" value="40" onchange="updateShipping()" style="margin-top:2px;accent-color:#402D21" />
+        <div>
+          <div style="font-weight:600;font-size:14px">฿ 40 — ส่งปกติ</div>
+          <div style="font-size:12px;color:#9a8878;margin-top:2px">เหมา 1 กิโลแรก</div>
+        </div>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px 14px;border:1.5px solid #EAD9C8;border-radius:12px;background:#fff" id="ship-label-0">
+        <input type="radio" name="shipping" id="ship0" value="0" onchange="updateShipping()" style="margin-top:2px;accent-color:#402D21" />
+        <div>
+          <div style="font-weight:600;font-size:14px">฿ 0 — ลูกค้าคอนโด</div>
+          <div style="font-size:12px;color:#9a8878;margin-top:2px">เฉพาะลูกค้าคอนโดเท่านั้น</div>
+        </div>
+      </label>
+    </div>
+  </div>
+
   <!-- สรุปยอด -->
   <div class="section" id="summarySection" style="display:none">
     <div class="section-label">สรุปออเดอร์</div>
     <div id="summaryItems"></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:#9a8878;padding:8px 0 4px">
+      <span>ค่าจัดส่ง</span>
+      <span id="summaryShipping">฿ 0</span>
+    </div>
     <div class="summary-total">
       <span>รวมทั้งหมด</span>
       <span id="summaryTotal">฿0</span>
@@ -561,21 +586,42 @@
     updateSummary();
   }
 
+  function getShippingFee() {
+    const sel = document.querySelector('input[name="shipping"]:checked');
+    return sel ? parseInt(sel.value) : 0;
+  }
+
+  function updateShipping() {
+    // highlight selected option
+    document.querySelectorAll('[id^="ship-label-"]').forEach(el => {
+      el.style.borderColor = '#EAD9C8'; el.style.background = '#fff';
+    });
+    const sel = document.querySelector('input[name="shipping"]:checked');
+    if (sel) {
+      const lbl = document.getElementById('ship-label-' + sel.value);
+      if (lbl) { lbl.style.borderColor = '#402D21'; lbl.style.background = '#FEFAF8'; }
+    }
+    updateSummary();
+  }
+
   function updateSummary() {
     const items = Object.entries(cart);
     const section = document.getElementById('summarySection');
     if (!items.length) { section.style.display = 'none'; return; }
 
     section.style.display = 'block';
-    let total = 0;
+    let subtotal = 0;
     const rows = items.map(([id, qty]) => {
       const p = products.find(p => p.id === id);
       const sub = p.price_thb * qty;
-      total += sub;
+      subtotal += sub;
       return `<div class="summary-row"><span>${p.name} × ${qty}</span><span>฿${sub.toLocaleString()}</span></div>`;
     });
+    const shipping = getShippingFee();
+    const total = subtotal + shipping;
     document.getElementById('summaryItems').innerHTML = rows.join('');
-    document.getElementById('summaryTotal').textContent = '฿' + total.toLocaleString();
+    document.getElementById('summaryShipping').textContent = '฿ ' + shipping.toLocaleString();
+    document.getElementById('summaryTotal').textContent = '฿ ' + total.toLocaleString();
   }
 
   function previewSlip(input) {
@@ -606,6 +652,10 @@
       alert('กรุณาเลือกสินค้าอย่างน้อย 1 ชิ้นค่ะ');
       return;
     }
+    if (!document.querySelector('input[name="shipping"]:checked')) {
+      alert('กรุณาเลือกวิธีจัดส่งค่ะ');
+      return;
+    }
 
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
@@ -613,11 +663,13 @@
 
     try {
       // คำนวณยอดรวม
-      let total = 0;
+      let subtotal = 0;
       Object.entries(cart).forEach(([id, qty]) => {
         const p = products.find(p => p.id === id);
-        total += p.price_thb * qty;
+        subtotal += p.price_thb * qty;
       });
+      const shippingFee = getShippingFee();
+      const total = subtotal + shippingFee;
 
       // สร้างออเดอร์
       const { data: order, error: orderError } = await db
@@ -629,6 +681,7 @@
           customer_phone: phone,
           customer_address: address,
           total_price: total,
+          shipping_fee: shippingFee,
           notes: notes,
           refund_account: refundAccount || null,
           status: 'pending_payment'
@@ -731,7 +784,8 @@
     if (!bar) return;
     if (count > 0) {
       bar.style.display = 'flex';
-      document.getElementById('stickyPrice').textContent = '฿' + Number(total).toLocaleString();
+      const shipping = getShippingFee();
+      document.getElementById('stickyPrice').textContent = '฿ ' + Number(total + shipping).toLocaleString();
       document.getElementById('stickyItems').textContent = count + ' ชิ้น';
     } else {
       bar.style.display = 'none';

@@ -373,6 +373,7 @@
     shipped:         { label: 'จัดส่งแล้ว',       icon: '📦', color: '#f3e5f5', text: '#6a1b9a' },
     delivered:       { label: 'ได้รับแล้ว',       icon: '🎉', color: '#e8f5e9', text: '#1b5e20' },
     cancelled:       { label: 'ยกเลิก',           icon: '❌', color: '#fce4ec', text: '#b71c1c' },
+    refund_pending:  { label: 'รอโอนเงินคืน',    icon: '💸', color: '#fff3e0', text: '#e65100' },
   };
 
   const STEPS = [
@@ -443,12 +444,27 @@
         }).join('')
       : `<div style="text-align:center;color:#e57373;padding:10px">ออเดอร์นี้ถูกยกเลิก</div>`;
 
-    const items = (order.order_items || []).map(item =>
-      `<div class="item-row">
+    const items = (order.order_items || []).map(item => {
+      if (item.cancelled) {
+        return `<div class="item-row" style="opacity:0.5">
+          <span style="text-decoration:line-through">${item.product_name} × ${item.quantity}</span>
+          <span style="text-decoration:line-through">฿${(item.price_thb * item.quantity).toLocaleString()}</span>
+        </div>
+        <div style="font-size:11px;color:#e57373;padding:2px 0 6px">❌ สินค้าหมดจากหน้าร้าน</div>`;
+      }
+      return `<div class="item-row">
         <span>${item.product_name} × ${item.quantity}</span>
         <span>฿${(item.price_thb * item.quantity).toLocaleString()}</span>
-      </div>`
-    ).join('');
+      </div>`;
+    }).join('');
+
+    const refundHtml = order.refund_amount > 0
+      ? `<div style="margin-top:12px;padding:12px 14px;background:#fff3e0;border-radius:10px;border:1px solid #ffcc80">
+           <div style="font-size:12px;color:#e65100;font-weight:600">💸 ยอดที่จะคืนเงิน</div>
+           <div style="font-size:20px;font-weight:700;color:#e65100;margin-top:4px">฿${Number(order.refund_amount).toLocaleString()}</div>
+           <div style="font-size:12px;color:#bf360c;margin-top:4px">โอนคืนไปยัง: ${order.refund_account || 'กรุณาติดต่อร้านค้า'}</div>
+         </div>`
+      : '';
 
     const tracking = order.tracking && order.tracking.length
       ? `<div class="tracking-box">
@@ -480,6 +496,7 @@
         </div>
 
         ${tracking}
+        ${refundHtml}
       </div>`;
   }
 
