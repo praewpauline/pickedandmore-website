@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Noto Sans Thai', sans-serif; background: #FEFAF8; color: #402D21; }
@@ -310,6 +311,10 @@
   <!-- TAB: ออเดอร์ -->
   <div class="tab-content active" id="tab-orders">
     <div class="sec-title">ออเดอร์ทั้งหมด</div>
+    <div style="display:flex;gap:8px;padding:4px 16px 8px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-outline" onclick="exportShoppingList()">📋 Export ลิสต์สินค้าที่ต้องหิ้ว</button>
+      <button class="btn btn-sm btn-outline" onclick="exportAllOrders()">📊 Export ออเดอร์ทั้งหมด</button>
+    </div>
     <div id="ordersList"><div class="loading-txt">กำลังโหลด...</div></div>
   </div>
 
@@ -494,6 +499,69 @@ function loadAll() {
 }
 
 // ===================== ORDERS =====================
+async function exportShoppingList() {
+  const { data: orders } = await db.from('orders')
+    .select('*, order_items(*)')
+    .not('status', 'eq', 'cancelled');
+
+  // รวมสินค้าทุกออเดอร์
+  const map = {};
+  (orders || []).forEach(function(o) {
+    (o.order_items || []).forEach(function(it) {
+      if (it.cancelled) return;
+      const variant = it.notes ? ' (' + it.notes + ')' : '';
+      const key = it.product_name + variant;
+      if (!map[key]) map[key] = { name: it.product_name, variant: it.notes || '', qty: 0, unit_price: it.price_thb };
+      map[key].qty += it.quantity;
+    });
+  });
+
+  const rows = [['สินค้า', 'ตัวเลือก/variant', 'จำนวนรวม', 'ราคาต่อชิ้น (฿)', 'รวม (฿)']];
+  Object.values(map).forEach(function(r) {
+    rows.push([r.name, r.variant, r.qty, r.unit_price, r.unit_price * r.qty]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:30},{wch:20},{wch:12},{wch:16},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Shopping List');
+  XLSX.writeFile(wb, 'pickedandmore_shopping_list.xlsx');
+}
+
+async function exportAllOrders() {
+  const { data: orders } = await db.from('orders')
+    .select('*, order_items(*)')
+    .order('created_at', { ascending: false });
+
+  const rows = [['#', 'ชื่อลูกค้า', 'LINE', 'เบอร์', 'ที่อยู่', 'สินค้า', 'ยอดรวม (฿)', 'ค่าส่ง (฿)', 'สถานะ', 'หมายเหตุ']];
+  const STATUS_TH2 = { pending_payment:'รอชำระ', paid:'ชำระแล้ว', confirmed:'ยืนยันแล้ว', shipping:'กำลังส่ง', delivered:'ส่งถึงแล้ว', cancelled:'ยกเลิก' };
+
+  (orders || []).forEach(function(o) {
+    const items = (o.order_items || []).map(function(it) {
+      const v = it.notes ? ' (' + it.notes + ')' : '';
+      return it.product_name + v + ' ×' + it.quantity;
+    }).join(', ');
+    rows.push([
+      '#' + String(o.order_number).padStart(3,'0'),
+      o.customer_name || '',
+      o.customer_line || '',
+      o.customer_phone || '',
+      o.customer_address || '',
+      items,
+      o.total_price,
+      o.shipping_fee || 0,
+      STATUS_TH2[o.status] || o.status,
+      o.notes || ''
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:6},{wch:16},{wch:16},{wch:14},{wch:24},{wch:40},{wch:12},{wch:10},{wch:14},{wch:24}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+  XLSX.writeFile(wb, 'pickedandmore_orders.xlsx');
+}
+
 async function loadOrders() {
   const { data, error } = await db
     .from('orders')
