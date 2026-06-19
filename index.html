@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pickedandmore — รับหิ้วจากญี่ปุ่น</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans Thai', sans-serif;
+      background: #FEFAF8;
+      color: #402D21;
+      min-height: 100vh;
+      padding-bottom: 70px;
+    }
+
+    /* ─── HEADER ─── */
+    header {
+      background: #fff;
+      border-bottom: 1px solid #EAD9C8;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .logo {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #402D21;
+    }
+    .logo span { color: #CFB59E; font-weight: 700; }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .header-icon {
+      color: #402D21;
+      text-decoration: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      min-height: 180px;
+      display: flex;
+      align-items: flex-end;
+      padding: 20px 24px 24px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #EDE0D4 0%, #DDE6ED 100%);
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+    }
+    .hero-bg-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(40,20,10,0.65) 0%, rgba(40,20,10,0.2) 60%, transparent 100%);
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+    }
+    .hero-brand {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 52px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+      line-height: 0.95;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .hero-brand .hero-and { color: #F5DFC8; }
+    /* when no bg image — dark text */
+    .hero.no-bg .hero-brand { color: #402D21; }
+    .hero.no-bg .hero-brand .hero-and { color: #CFB59E; }
+    .hero.no-bg .hero-sub { color: #7a6f65; }
+    .hero.no-bg .hero-sub-th { color: #9a8878; }
+    .hero-sub {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.9);
+      margin-top: 14px;
+    }
+    .hero-sub-th {
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      margin-top: 4px;
+    }
+
+    /* ─── ANNOUNCEMENT ─── */
+    .announce-box {
+      background: #F5EDE0;
+      border-left: 4px solid #CFB59E;
+      margin: 14px 16px 0;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #402D21;
+      line-height: 1.8;
+      border-radius: 0 12px 12px 0;
+      display: none;
+    }
+    .announce-box.show { display: block; }
+
+    /* ─── FLIGHT CARD ─── */
+    .flight-card {
+      background: #fff;
+      margin: 14px 16px 0;
+      border-radius: 18px;
+      border: 1px solid #EAD9C8;
+      padding: 18px 20px 16px;
+      display: none;
+    }
+    .flight-card.show { display: block; }
+    .flight-card-title {
+      font-family: 'Noto Sans Thai', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #402D21;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .flight-card-title svg { flex-shrink: 0; }
+    .flight-cols {
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr 1px auto;
+      gap: 0;
+      margin-bottom: 0;
+      align-items: center;
+    }
+    .flight-divider { background: #EAD9C8; width: 1px; align-self: stretch; }
+    .flight-col { padding: 0 12px; }
+    .flight-col:first-child { padding-left: 0; }
+    .flight-col-label {
+      font-size: 9px;
+      font-family: 'Josefin Sans', sans-serif;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #b0a090;
+      margin-bottom: 4px;
+    }
+    .flight-col-value {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #2C1A0E;
+      line-height: 1.1;
+    }
+    .flight-col-sub { font-size: 12px; color: #9a8878; margin-top: 3px; }
+    .flight-status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Noto Sans Thai', sans-serif;
+      background: #f0faf1;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+    }
+    .flight-notes-small {
+      font-size: 12px;
+      color: #9a8878;
+      line-height: 1.6;
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+      margin-top: 10px;
+      border-top: 1px solid #f0ebe4;
+      padding-top: 10px;
+    }
+
+    /* ─── SECTION HEADING ─── */
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 24px 20px 0;
+    }
+    .section-head-title {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #402D21;
+    }
+    .section-head-link {
+      font-size: 12px;
+      color: #9a8878;
+      text-decoration: none;
+      font-family: 'Josefin Sans', sans-serif;
+      letter-spacing: 1px;
+    }
+
+    /* ─── CATEGORIES ─── */
+    .categories {
+      display: flex;
+      gap: 10px;
+      padding: 14px 16px 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .categories::-webkit-scrollbar { display: none; }
+    .cat-item {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .cat-icon-wrap {
+      width: 58px; height: 58px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1.5px solid #EAD9C8;
+      display: flex; align-items: center; justify-content: center;
+      color: #6C4D38;
+      transition: all 0.2s;
+    }
+    .cat-icon-wrap svg { width: 26px; height: 26px; }
+    .cat-item.active .cat-icon-wrap {
+      background: #402D21;
+      border-color: #402D21;
+      color: #fff;
+    }
+    .cat-label {
+      font-size: 11px;
+      font-family: 'Noto Sans Thai', sans-serif;
+      color: #7a6f65;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .cat-item.active .cat-label { color: #402D21; font-weight: 600; }
+
+    /* ─── PRODUCTS GRID ─── */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 160px);
+      gap: 12px;
+      padding: 16px 16px 20px;
+      justify-content: center;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .product-card {
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #EAD9C8;
+      cursor: pointer;
+      opacity: 0;
+      animation: fadeUp 0.35s ease forwards;
+      position: relative;
+      transition: box-shadow 0.2s;
+    }
+    .product-card:active { transform: scale(0.98); }
+    .product-img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      background: #f0ebe4;
+      display: block;
+    }
+    .product-img-placeholder {
+      width: 100%;
+      height: 220px;
+      background: linear-gradient(135deg, #EDE0D4, #DDE6ED);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+    }
+    /* badge removed */
+    .product-info { padding: 10px 12px 14px; }
+    .product-name {
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.45;
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .product-price {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: #6C4D38;
+    }
+
+    /* ─── EMPTY / LOADING ─── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #aaa;
+      grid-column: 1 / -1;
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #aaa;
+      grid-column: 1 / -1;
+    }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: flex-end;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      padding: 24px 20px 48px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      animation: slideUp 0.28s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+    .modal-handle {
+      width: 36px; height: 4px;
+      background: #ddd;
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+    .modal-img {
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: 14px;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .modal-img-placeholder {
+      width: 100%; height: 180px;
+      background: linear-gradient(135deg, #EDE0D4, #DDE6ED);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 56px; margin-bottom: 16px;
+    }
+    .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+    .modal-desc { font-size: 13px; color: #888; margin-bottom: 16px; line-height: 1.6; }
+    .modal-price {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #6C4D38;
+      margin-bottom: 20px;
+    }
+    .modal-actions { display: flex; gap: 10px; }
+    .btn-secondary {
+      flex: 1; padding: 14px;
+      border: 1px solid #ddd7d0;
+      border-radius: 12px;
+      background: #fff;
+      font-size: 14px;
+      font-family: 'Noto Sans Thai', sans-serif;
+      cursor: pointer;
+      color: #402D21;
+    }
+    .btn-primary {
+      flex: 2; padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: #402D21;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Noto Sans Thai', sans-serif;
+      cursor: pointer;
+    }
+
+    /* ─── BOTTOM NAV ─── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #fff;
+      border-top: 1px solid #EAD9C8;
+      display: flex;
+      z-index: 50;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .bottom-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 0;
+      text-decoration: none;
+      color: #bbb;
+      font-size: 10px;
+      gap: 3px;
+      font-family: 'Noto Sans Thai', sans-serif;
+      transition: color 0.15s;
+    }
+    .bottom-nav-item.active { color: #402D21; }
+    .bottom-nav-item .nav-icon { line-height: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<header>
+  <div class="logo">picked<span>and</span>more</div>
+  <div class="header-right">
+    <a href="status.html" class="header-icon" title="ติดตามออเดอร์" style="font-size:20px">📦</a>
+    <a href="order.html" class="header-icon" title="สั่งซื้อ" style="font-size:20px">🛒</a>
+  </div>
+</header>
+
+<!-- ─── HERO ─── -->
+<section class="hero no-bg" id="heroSection">
+  <div class="hero-bg" id="heroBg" style="display:none"></div>
+  <div class="hero-bg-overlay" id="heroBgOverlay" style="display:none"></div>
+  <div class="hero-content">
+    <div class="hero-brand">PICKED<br><span class="hero-and">AND</span>MORE</div>
+    <div class="hero-sub" id="heroSub">Japan Proxy Shopping</div>
+    <div class="hero-sub-th" id="heroSubTh">รับหิ้วสินค้าจากญี่ปุ่น · 日本から</div>
+  </div>
+</section>
+
+<!-- ─── ANNOUNCEMENT ─── -->
+<div class="announce-box" id="announceBox"></div>
+
+<!-- ─── FLIGHT CARD ─── -->
+<div class="flight-card" id="flightCard">
+  <div class="flight-card-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
+      <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2h0A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+    </svg>
+    <span id="flightName">รอบบินปัจจุบัน</span>
+  </div>
+  <div class="flight-cols">
+    <div class="flight-col">
+      <div class="flight-col-label">Close Order</div>
+      <div class="flight-col-value" id="flightDeadline">—</div>
+      <div class="flight-col-sub" id="flightDeadlineTh"></div>
+    </div>
+    <div class="flight-divider"></div>
+    <div class="flight-col">
+      <div class="flight-col-label">Ship from Japan</div>
+      <div class="flight-col-value" id="flightDelivery">—</div>
+      <div class="flight-col-sub" id="flightDeliveryTh"></div>
+    </div>
+    <div class="flight-divider"></div>
+    <div class="flight-col">
+      <div class="flight-col-label">Status</div>
+      <span class="flight-status-badge">เปิดรับออเดอร์</span>
+    </div>
+  </div>
+  <div class="flight-notes-small" id="flightNotes" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14" style="flex-shrink:0;margin-top:1px">
+      <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+    </svg>
+    <span id="flightNotesText"></span>
+  </div>
+</div>
+
+<!-- ─── CATEGORIES ─── -->
+<div class="section-head">
+  <div class="section-head-title">Shop</div>
+</div>
+<div class="categories" id="categories">
+  <div class="cat-item active" data-cat="all" onclick="filterCat('all',this)">
+    <div class="cat-icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+      </svg>
+    </div>
+    <div class="cat-label">ทั้งหมด</div>
+  </div>
+</div>
+
+<!-- ─── PRODUCTS ─── -->
+<div class="section-head" style="padding-top:20px">
+  <div class="section-head-title">New Arrivals</div>
+</div>
+<div class="products-grid" id="productsGrid">
+  <div class="loading">กำลังโหลด...</div>
+</div>
+
+<!-- ─── MODAL ─── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="modalImgWrap"></div>
+    <div class="modal-title" id="modalName"></div>
+    <div class="modal-desc" id="modalDesc"></div>
+    <div class="modal-price" id="modalPrice"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModalDirect()">ปิด</button>
+      <button class="btn-primary" id="modalOrderBtn" onclick="goOrder()">สั่งซื้อเลย</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── BOTTOM NAV ─── -->
+<nav class="bottom-nav">
+  <a href="index.html" class="bottom-nav-item active">
+    <span class="nav-icon" style="font-size:22px">🏠</span>
+    <span>หน้าหลัก</span>
+  </a>
+  <a href="order.html" class="bottom-nav-item">
+    <span class="nav-icon" style="font-size:22px">🛒</span>
+    <span>สั่งซื้อ</span>
+  </a>
+  <a href="status.html" class="bottom-nav-item">
+    <span class="nav-icon" style="font-size:22px">📦</span>
+    <span>ติดตามออเดอร์</span>
+  </a>
+</nav>
+
+<script src="config.js"></script>
+<script>
+  let allProducts = [];
+  let currentCategory = 'all';
+  let selectedProduct = null;
+
+  // ─── SVG PICTOGRAM MAP ───
+  const SVGS = {
+    snack: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3C8 3 7 5 7 7C7 9 8 10 8 10"/><path d="M12 3C12 3 11 5 11 7C11 9 12 10 12 10"/><path d="M16 3C16 3 15 5 15 7C15 9 16 10 16 10"/><rect x="4" y="10" width="16" height="11" rx="2"/><line x1="4" y1="15" x2="20" y2="15"/></svg>',
+    beauty: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="13" width="6" height="9" rx="1"/><path d="M9 13V9L12 5L15 9V13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>',
+    fashion: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7L8 4L12 7L16 4L21 7L19 11H17V21H7V11H5L3 7Z"/></svg>',
+    figure: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="3"/><path d="M9 21V16C9 14.9 9.9 14 11 14H13C14.1 14 15 14.9 15 16V21"/><path d="M9 21H15"/><path d="M6 12C6 12 7 11 9 11"/><path d="M18 12C18 12 17 11 15 11"/></svg>',
+    stationery: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3L21 7L8 20H4V16L17 3Z"/><line x1="14" y1="6" x2="18" y2="10"/></svg>',
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9L12 3L21 9V20H15V14H9V20H3V9Z"/></svg>',
+    bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V6L18 2H6Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10C16 12.2 14.2 14 12 14C9.8 14 8 12.2 8 10"/></svg>',
+    food: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8H19C20.1 8 21 8.9 21 10V12C21 13.1 20.1 14 19 14H18"/><rect x="3" y="6" width="15" height="14" rx="2"/><line x1="3" y1="10" x2="18" y2="10"/></svg>',
+    skincare: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2H15L16 6H8L9 2Z"/><rect x="6" y="6" width="12" height="16" rx="2"/><line x1="10" y1="12" x2="14" y2="12"/><line x1="10" y1="15" x2="14" y2="15"/></svg>',
+    other: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>',
+  };
+
+  function catIcon(name) {
+    if (!name) return SVGS.other;
+    const k = name.toLowerCase();
+    if (k.includes('ขนม') || k.includes('snack') || k.includes('food') || k.includes('candy')) return SVGS.snack;
+    if (k.includes('beauty') || k.includes('บิวตี้') || k.includes('เครื่องสำอาง') || k.includes('lipstick')) return SVGS.beauty;
+    if (k.includes('skincare') || k.includes('ครีม') || k.includes('serum') || k.includes('lotion')) return SVGS.skincare;
+    if (k.includes('fashion') || k.includes('เสื้อ') || k.includes('เครื่องแต่งกาย') || k.includes('cloth')) return SVGS.fashion;
+    if (k.includes('figure') || k.includes('ของสะสม') || k.includes('toy') || k.includes('ของเล่น') || k.includes('โมเดล')) return SVGS.figure;
+    if (k.includes('station') || k.includes('เครื่องเขียน') || k.includes('paper') || k.includes('pen')) return SVGS.stationery;
+    if (k.includes('home') || k.includes('ของใช้') || k.includes('kitchen') || k.includes('living')) return SVGS.home;
+    if (k.includes('bag') || k.includes('กระเป๋า')) return SVGS.bag;
+    if (k.includes('อาหาร') || k.includes('meal')) return SVGS.food;
+    return SVGS.other;
+  }
+
+  const MONTHS_EN = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+  function formatDateEn(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    return d.getDate() + ' ' + MONTHS_EN[d.getMonth()] + '\n' + d.getFullYear();
+  }
+  function formatDateTh(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function formatDate(dateStr) { return formatDateEn(dateStr); }
+
+  // ─── SITE SETTINGS (hero text + announcement) ───
+  async function loadSiteSettings() {
+    try {
+      const { data } = await db.from('site_settings').select('*').eq('id', 1).maybeSingle();
+      if (!data) return;
+      if (data.announcement) {
+        const box = document.getElementById('announceBox');
+        box.textContent = '📌 ' + data.announcement;
+        box.classList.add('show');
+      }
+      if (data.hero_subtitle) {
+        document.getElementById('heroSub').textContent = data.hero_subtitle;
+      }
+      if (data.hero_subtitle_th) {
+        document.getElementById('heroSubTh').textContent = data.hero_subtitle_th;
+      }
+      if (data.hero_image) {
+        const hero = document.getElementById('heroSection');
+        hero.classList.remove('no-bg');
+        const bg = document.getElementById('heroBg');
+        bg.style.backgroundImage = 'url(' + data.hero_image + ')';
+        bg.style.display = 'block';
+        document.getElementById('heroBgOverlay').style.display = 'block';
+      }
+    } catch(e) {}
+  }
+
+  // ─── FLIGHT ROUND ───
+  async function loadFlightRound() {
+    try {
+      const { data } = await db
+        .from('flight_rounds').select('*')
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .limit(1).maybeSingle();
+      if (!data) return;
+      document.getElementById('flightCard').classList.add('show');
+      document.getElementById('flightName').textContent = data.name.toUpperCase();
+
+      // deadline
+      if (data.order_deadline) {
+        const d = new Date(data.order_deadline);
+        document.getElementById('flightDeadline').textContent =
+          d.getDate() + ' ' + MONTHS_EN[d.getMonth()] + ' ' + d.getFullYear();
+        document.getElementById('flightDeadlineTh').textContent = formatDateTh(data.order_deadline);
+      }
+      // delivery
+      if (data.delivery_date) {
+        const d2 = new Date(data.delivery_date);
+        document.getElementById('flightDelivery').textContent =
+          d2.getDate() + ' ' + MONTHS_EN[d2.getMonth()] + ' ' + d2.getFullYear();
+        document.getElementById('flightDeliveryTh').textContent = formatDateTh(data.delivery_date);
+      }
+      // notes
+      if (data.notes) {
+        const n = document.getElementById('flightNotes');
+        document.getElementById('flightNotesText').textContent = data.notes;
+        n.style.display = 'flex';
+      }
+    } catch(e) {}
+  }
+
+  // ─── PRODUCTS ───
+  async function loadProducts() {
+    try {
+      const { data, error } = await db
+        .from('products').select('*')
+        .eq('is_available', true)
+        .order('created_at', { ascending: false });
+      if (error || !data) throw error;
+      allProducts = data;
+
+      // load categories from categories table, fallback to product categories
+      await buildCategories(data);
+
+      renderProducts(data);
+    } catch(e) {
+      document.getElementById('productsGrid').innerHTML =
+        '<div class="empty-state"><div class="icon">😕</div><div>ไม่สามารถโหลดสินค้าได้</div></div>';
+    }
+  }
+
+  function filterCat(cat, el) {
+    currentCategory = cat;
+    document.querySelectorAll('.cat-item').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    const filtered = cat === 'all' ? allProducts : allProducts.filter(p => p.category === cat);
+    renderProducts(filtered);
+  }
+
+  function renderProducts(products) {
+    const grid = document.getElementById('productsGrid');
+    if (!products.length) {
+      grid.innerHTML = '<div class="empty-state"><div>ไม่มีสินค้าในหมวดนี้</div></div>';
+      return;
+    }
+    grid.innerHTML = products.map((p, i) => {
+      const img = p.image_url
+        ? '<img class="product-img" src="' + p.image_url + '" alt="' + p.name + '" loading="lazy" />'
+        : '<div class="product-img-placeholder"></div>';
+      return '<div class="product-card" style="animation-delay:' + (i * 0.05) + 's" onclick="openModal(' + JSON.stringify(p).replace(/"/g, '&quot;') + ')">'
+        + img
+        + '<div class="product-info">'
+        + '<div class="product-name">' + p.name + '</div>'
+        + '<div class="product-price">฿' + Number(p.price_thb).toLocaleString() + '</div>'
+        + '</div></div>';
+    }).join('');
+  }
+
+  // ─── MODAL ───
+  function openModal(product) {
+    selectedProduct = product;
+    const imgWrap = document.getElementById('modalImgWrap');
+    imgWrap.innerHTML = product.image_url
+      ? '<img class="modal-img" src="' + product.image_url + '" alt="' + product.name + '" />'
+      : '<div class="modal-img-placeholder">🛍️</div>';
+    document.getElementById('modalName').textContent = product.name;
+    document.getElementById('modalDesc').textContent = product.description || '';
+    document.getElementById('modalPrice').textContent = '฿' + Number(product.price_thb).toLocaleString();
+    document.getElementById('modalOrderBtn').disabled = false;
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+  function closeModal(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModalDirect();
+  }
+  function closeModalDirect() {
+    document.getElementById('modalOverlay').classList.remove('show');
+  }
+  function goOrder() {
+    if (selectedProduct) sessionStorage.setItem('selectedProduct', JSON.stringify(selectedProduct));
+    window.location.href = 'order.html';
+  }
+
+  async function buildCategories(productData) {
+    const catDiv = document.getElementById('categories');
+    let catNames = [];
+    try {
+      const { data: cats } = await db.from('categories').select('name').order('sort_order').order('name');
+      if (cats && cats.length > 0) {
+        catNames = cats.map(c => c.name);
+      }
+    } catch(e) {}
+    // fallback: derive from products
+    if (!catNames.length) {
+      const seen = new Set();
+      productData.forEach(p => { if (p.category) seen.add(p.category); });
+      catNames = Array.from(seen);
+    }
+    catNames.forEach(name => {
+      const item = document.createElement('div');
+      item.className = 'cat-item';
+      item.dataset.cat = name;
+      item.innerHTML = '<div class="cat-icon-wrap">' + catIcon(name) + '</div>'
+        + '<div class="cat-label">' + name + '</div>';
+      item.onclick = function() { filterCat(name, this); };
+      catDiv.appendChild(item);
+    });
+  }
+
+  // ─── INIT ───
+  loadSiteSettings();
+  loadFlightRound();
+  loadProducts();
+</script>
+</body>
+</html>
