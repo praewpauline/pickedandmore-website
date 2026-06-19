@@ -892,16 +892,20 @@
     galleryNav(dx < 0 ? 1 : -1);
   });
   // Mac trackpad two-finger swipe
-  let _wheelLock = false;
+  let _wheelAcc = 0, _wheelTimer = null;
   document.addEventListener('wheel', function(e) {
     const g = document.getElementById('modalGallery');
     if (!g || !g.contains(e.target)) return;
-    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return; // vertical scroll, ignore
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
     e.preventDefault();
-    if (_wheelLock) return;
-    _wheelLock = true;
-    setTimeout(function() { _wheelLock = false; }, 500);
-    galleryNav(e.deltaX > 0 ? 1 : -1);
+    _wheelAcc += e.deltaX;
+    clearTimeout(_wheelTimer);
+    _wheelTimer = setTimeout(function() { _wheelAcc = 0; }, 300);
+    if (Math.abs(_wheelAcc) > 60) {
+      const dir = _wheelAcc > 0 ? 1 : -1;
+      _wheelAcc = 0;
+      galleryNav(dir);
+    }
   }, { passive: false });
 
   function galleryNav(delta, absolute) {
