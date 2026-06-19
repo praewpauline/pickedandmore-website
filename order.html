@@ -413,6 +413,13 @@
           <div style="font-size:12px;color:#9a8878;margin-top:2px">เฉพาะลูกค้าคอนโดเท่านั้น</div>
         </div>
       </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px 14px;border:1.5px solid #D4E8D4;border-radius:12px;background:#F6FBF6" id="ship-label-combine">
+        <input type="radio" name="shipping" id="shipCombine" value="0" onchange="updateShipping()" style="margin-top:2px;accent-color:#402D21" />
+        <div>
+          <div style="font-weight:600;font-size:14px">฿ 0 — รวมออเดอร์กับที่โอนไปแล้ว</div>
+          <div style="font-size:12px;color:#5a8a5a;margin-top:2px">สำหรับลูกค้าที่มีออเดอร์และโอนเงินไปแล้วในรอบนี้ และต้องการสั่งเพิ่ม</div>
+        </div>
+      </label>
     </div>
   </div>
 
@@ -640,7 +647,7 @@
           customer_address: address,
           total_price: total,
           shipping_fee: shippingFee,
-          notes: notes,
+          notes: (document.getElementById('shipCombine').checked ? '[รวมออเดอร์] ' : '') + (notes || ''),
           refund_account: refundAccount || null,
           status: 'pending_payment'
         })
