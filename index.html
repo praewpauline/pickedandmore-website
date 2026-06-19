@@ -220,9 +220,9 @@
       grid-template-columns: 1fr 1px 1fr 1px auto;
       gap: 0;
       margin-bottom: 0;
-      align-items: center;
+      align-items: start;
     }
-    .flight-divider { background: #EAD9C8; width: 1px; align-self: stretch; }
+    .flight-divider { background: #EAD9C8; width: 1px; align-self: stretch; min-height: 56px; }
     .flight-col { padding: 0 12px; }
     .flight-col:first-child { padding-left: 0; }
     .flight-col-label {
@@ -692,7 +692,7 @@
     </div>
     <div class="flight-divider"></div>
     <div class="flight-col">
-      <div class="flight-col-label">Ship from Japan</div>
+      <div class="flight-col-label">Ship EMS</div>
       <div class="flight-col-value" id="flightDelivery">—</div>
       <div class="flight-col-sub" id="flightDeliveryTh"></div>
     </div>

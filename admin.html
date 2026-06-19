@@ -536,15 +536,26 @@ async function loadOrders() {
         + '<input type="text" id="track-car-' + o.id + '" placeholder="Kerry / Flash / ไปรษณีย์" style="margin-top:6px" />'
         + '<button class="btn btn-sm btn-dark" style="margin-top:8px" onclick="addTracking(\'' + o.id + '\')">บันทึกเลขพัสดุ</button></div>';
 
+    const isCombine = o.notes && o.notes.includes('[รวมออเดอร์]');
+    const combineBadge = isCombine
+      ? '<span style="font-size:10px;font-weight:700;background:#FFF3CD;color:#856404;border:1px solid #f0d060;padding:3px 8px;border-radius:10px;white-space:nowrap">🔗 รวมออเดอร์</span>'
+      : '';
+    const notesHtml = o.notes
+      ? '<div class="field-group" style="margin-top:12px"><div class="field-label">หมายเหตุจากลูกค้า</div>'
+        + '<div style="font-size:13px;background:' + (isCombine ? '#FFFBEA' : '#f9f5f1') + ';border:1px solid ' + (isCombine ? '#f0d060' : '#EAD9C8') + ';border-radius:8px;padding:8px 12px;margin-top:4px">'
+        + o.notes + '</div></div>'
+      : '';
+
     return '<div class="card">'
       + '<div class="card-header" onclick="toggleCard(\'' + o.id + '\')">'
       + '<div class="card-header-left">'
-      + '<div class="card-title">#' + String(o.order_number).padStart(3,'0') + ' — ' + o.customer_name + '</div>'
+      + '<div class="card-title">#' + String(o.order_number).padStart(3,'0') + ' — ' + o.customer_name + (combineBadge ? ' ' + combineBadge : '') + '</div>'
       + '<div class="card-sub">' + formatDateTime(o.created_at) + ' · ฿' + Number(o.total_price).toLocaleString() + '</div>'
       + '</div><div style="display:flex;align-items:center;gap:8px">' + badge + '<span class="chevron" id="chev-' + o.id + '">▼</span></div>'
       + '</div>'
       + '<div class="card-body" id="body-' + o.id + '">'
       + '<div style="padding-top:12px">'
+      + notesHtml
       + '<div class="field-label">ข้อมูลลูกค้า</div>'
       + '<div style="font-size:13px;margin-top:4px">LINE: ' + (o.customer_line || '—') + '<br>โทร: ' + (o.customer_phone || '—') + '<br>ที่อยู่: ' + (o.customer_address || '—') + (o.refund_account ? '<br>เลขบัญชีคืนเงิน: <strong>' + o.refund_account + '</strong>' : '') + '</div>'
       + '<div class="field-label" style="margin-top:12px">รายการสินค้า</div>'
