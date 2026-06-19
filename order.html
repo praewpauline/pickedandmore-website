@@ -501,10 +501,11 @@
       updateSummary();
       return;
     }
-    list.innerHTML = keys.map(function(key) {
+    window._cartKeys = keys;
+    list.innerHTML = keys.map(function(key, i) {
       const item = cart[key];
       const variantText = Object.entries(item.variants || {}).map(function([k,v]) { return k + ': ' + v; }).join(', ');
-      return '<div class="product-row selected" id="row-' + key + '">'
+      return '<div class="product-row selected" id="row-' + i + '">'
         + '<div class="product-row-top">'
         + '<div class="product-row-info">'
         + '<div class="product-row-name">' + item.name + '</div>'
@@ -512,15 +513,17 @@
         + (variantText ? '<div class="product-row-stock">' + variantText + '</div>' : '')
         + '</div>'
         + '<div class="qty-control">'
-        + '<button class="qty-btn" onclick="changeCartQty(\'' + key + '\',-1)">−</button>'
-        + '<span class="qty-num" id="qty-' + key + '">' + item.qty + '</span>'
-        + '<button class="qty-btn" onclick="changeCartQty(\'' + key + '\',1)">+</button>'
+        + '<button class="qty-btn" onclick="changeCartQtyByIdx(' + i + ',-1)">−</button>'
+        + '<span class="qty-num" id="qty-' + i + '">' + item.qty + '</span>'
+        + '<button class="qty-btn" onclick="changeCartQtyByIdx(' + i + ',1)">+</button>'
         + '</div></div></div>';
     }).join('');
     updateSummary();
   }
 
-  function changeCartQty(key, delta) {
+  function changeCartQtyByIdx(idx, delta) {
+    const key = window._cartKeys && window._cartKeys[idx];
+    if (!key) return;
     const cart = getCart();
     if (!cart[key]) return;
     const newQty = Math.max(0, cart[key].qty + delta);
@@ -532,7 +535,7 @@
     }
     cart[key].qty = newQty;
     saveCart(cart);
-    document.getElementById('qty-' + key).textContent = newQty;
+    document.getElementById('qty-' + idx).textContent = newQty;
     updateSummary();
   }
 
