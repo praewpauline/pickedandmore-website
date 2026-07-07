@@ -331,7 +331,7 @@
       <div class="field-group"><div class="field-label">ราคาขาย (บาท) *</div><input type="number" id="np-price-thb" placeholder="390" /></div>
       <div class="field-group"><div class="field-label">ราคาป้าย (เยน)</div><input type="number" id="np-price-jpy" placeholder="880" /></div>
       <div class="field-group"><div class="field-label">สต็อก *</div><input type="number" id="np-stock" placeholder="10" /></div>
-      <div class="field-group"><div class="field-label">หมวดหมู่</div><input type="text" id="np-category" placeholder="เครื่องสำอาง / ขนม / สกินแคร์" /></div>
+      <div class="field-group"><div class="field-label">หมวดหมู่</div><select id="np-category"><option value="">— เลือกหมวดหมู่ —</option></select></div>
       <div class="field-group">
         <div class="field-label">รูปสินค้า <span style="font-weight:400;color:#9a8878;font-size:12px">(เลือกได้หลายรูป — auto ย่อขนาด)</span></div>
         <div id="img-gallery-new" style="margin-bottom:8px"></div>
@@ -751,7 +751,7 @@ async function loadProducts() {
       + '<div class="field-group"><div class="field-label">ราคาขาย (บาท)</div><input type="number" id="pe-thb-' + p.id + '" value="' + p.price_thb + '" /></div>'
       + '<div class="field-group"><div class="field-label">ราคาป้าย (เยน)</div><input type="number" id="pe-jpy-' + p.id + '" value="' + (p.price_jpy || '') + '" /></div>'
       + '<div class="field-group"><div class="field-label">สต็อก</div><input type="number" id="pe-stock-' + p.id + '" value="' + p.stock + '" /></div>'
-      + '<div class="field-group"><div class="field-label">หมวดหมู่</div><input type="text" id="pe-cat-' + p.id + '" value="' + (p.category || '') + '" /></div>'
+      + '<div class="field-group"><div class="field-label">หมวดหมู่</div><select id="pe-cat-' + p.id + '"><option value="">— เลือกหมวดหมู่ —</option></select></div>'
       + '<div class="field-group"><div class="field-label">รูปสินค้า <span style="font-weight:400;color:#9a8878;font-size:12px">(เลือกได้หลายรูป)</span></div>'
       + '<div id="img-gallery-' + p.id + '" style="margin-bottom:8px"></div>'
       + '<button type="button" class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="document.getElementById(\'pe-img-file-' + p.id + '\').click()">📷 เพิ่มรูป</button>'
@@ -802,13 +802,16 @@ async function setSortOrder(id, val) {
 
 function toggleProductEdit(id) {
   document.getElementById('pedit-' + id).classList.toggle('open');
-  // init existing images from product data
   const p = allProducts.find(function(x) { return x.id === id; });
   if (p) {
+    // init images
     if (!window._productImgs) window._productImgs = {};
     const existingImgs = p.images && p.images.length ? p.images : (p.image_url ? [p.image_url] : []);
     window._productImgs[id] = existingImgs.slice();
     renderImgGalleryAdmin(id);
+    // set category dropdown
+    const catSel = document.getElementById('pe-cat-' + id);
+    if (catSel && p.category) catSel.value = p.category;
   }
 }
 
@@ -1090,6 +1093,24 @@ async function updateCatOrder(id, val) {
 async function loadCategories() {
   const list = document.getElementById('categoriesList');
   const { data, error } = await db.from('categories').select('*').order('sort_order').order('name');
+
+  // เติม dropdown ในฟอร์มเพิ่มสินค้าใหม่
+  const npCat = document.getElementById('np-category');
+  if (npCat && data) {
+    const cur = npCat.value;
+    npCat.innerHTML = '<option value="">— เลือกหมวดหมู่ —</option>'
+      + data.map(function(c) { return '<option value="' + c.name + '"' + (cur === c.name ? ' selected' : '') + '>' + c.name + '</option>'; }).join('');
+  }
+
+  // เติม dropdown ในฟอร์มแก้ไขสินค้าทุกอัน
+  if (data) {
+    document.querySelectorAll('select[id^="pe-cat-"]').forEach(function(sel) {
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">— เลือกหมวดหมู่ —</option>'
+        + data.map(function(c) { return '<option value="' + c.name + '"' + (cur === c.name ? ' selected' : '') + '>' + c.name + '</option>'; }).join('');
+    });
+  }
+
   if (error || !data || !data.length) {
     list.innerHTML = '<div style="padding:20px 16px;color:#aaa;font-size:13px">ยังไม่มีหมวดหมู่ — กด "+ เพิ่มหมวดหมู่ใหม่" เพื่อเริ่มต้นค่ะ</div>';
     return;

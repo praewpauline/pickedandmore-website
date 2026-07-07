@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>pickedandmore — รับหิ้วจากญี่ปุ่น</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Noto Sans Thai', sans-serif;
-      background: #FEFAF8;
-      color: #402D21;
+      background: #FFFFFF;
+      color: #1A1A1A;
       min-height: 100vh;
       padding-bottom: 70px;
     }
@@ -21,7 +21,7 @@
     /* ─── HEADER ─── */
     header {
       background: #fff;
-      border-bottom: 1px solid #EAD9C8;
+      border-bottom: 1px solid #E8E6E1;
       padding: 14px 20px;
       display: flex;
       align-items: center;
@@ -31,21 +31,21 @@
       z-index: 20;
     }
     .logo {
-      font-family: 'Josefin Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 15px;
-      font-weight: 400;
-      letter-spacing: 3px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: #402D21;
+      color: #1A1A1A;
     }
-    .logo span { color: #CFB59E; font-weight: 700; }
+    .logo span { color: inherit; font-weight: inherit; }
     .header-right {
       display: flex;
       align-items: center;
       gap: 16px;
     }
     .header-icon {
-      color: #402D21;
+      color: #1A1A1A;
       text-decoration: none;
       cursor: pointer;
       display: flex;
@@ -60,7 +60,7 @@
       align-items: flex-end;
       padding: 20px 24px 24px;
       overflow: hidden;
-      background: linear-gradient(135deg, #EDE0D4 0%, #DDE6ED 100%);
+      background: #FAF9F6;
     }
     .hero-bg {
       position: absolute;
@@ -71,33 +71,31 @@
     .hero-bg-overlay {
       position: absolute;
       inset: 0;
-      background: linear-gradient(to top, rgba(40,20,10,0.65) 0%, rgba(40,20,10,0.2) 60%, transparent 100%);
+      background: linear-gradient(to top, rgba(10,10,10,0.6) 0%, rgba(10,10,10,0.15) 60%, transparent 100%);
     }
     .hero-content {
       position: relative;
       z-index: 2;
     }
     .hero-brand {
-      font-family: 'Josefin Sans', sans-serif;
-      font-size: 52px;
+      font-family: 'Inter', sans-serif;
+      font-size: 44px;
       font-weight: 700;
-      letter-spacing: 2px;
+      letter-spacing: 0.5px;
       text-transform: uppercase;
       color: #fff;
-      line-height: 0.95;
-      text-shadow: 0 2px 12px rgba(0,0,0,0.2);
+      line-height: 0.98;
     }
-    .hero-brand .hero-and { color: #F5DFC8; }
+    .hero-brand .hero-and { color: inherit; font-weight: inherit; }
     /* when no bg image — dark text */
-    .hero.no-bg .hero-brand { color: #402D21; }
-    .hero.no-bg .hero-brand .hero-and { color: #CFB59E; }
-    .hero.no-bg .hero-sub { color: #7a6f65; }
-    .hero.no-bg .hero-sub-th { color: #9a8878; }
+    .hero.no-bg .hero-brand { color: #1A1A1A; }
+    .hero.no-bg .hero-sub { color: #8A8680; }
+    .hero.no-bg .hero-sub-th { color: #8A8680; }
     .hero-sub {
-      font-family: 'Josefin Sans', sans-serif;
-      font-size: 12px;
-      font-weight: 400;
-      letter-spacing: 3px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 2px;
       text-transform: uppercase;
       color: rgba(255,255,255,0.9);
       margin-top: 14px;
@@ -114,13 +112,15 @@
       align-items: center;
       gap: 6px;
       margin: 10px 16px 0;
-      padding: 10px 16px;
+      padding: 14px 16px;
       background: #fff;
-      border: 1.5px solid #EAD9C8;
-      border-radius: 12px;
+      border: none;
+      border-top: 1px solid #E8E6E1;
+      border-bottom: 1px solid #E8E6E1;
+      border-radius: 0;
       font-family: 'Noto Sans Thai', sans-serif;
       font-size: 13px;
-      color: #6C4D38;
+      color: #55524C;
       cursor: pointer;
       width: calc(100% - 32px);
       text-align: left;
@@ -129,7 +129,7 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(40,20,10,0.45);
+      background: rgba(10,10,10,0.4);
       z-index: 100;
       align-items: flex-end;
       justify-content: center;
@@ -151,7 +151,7 @@
     }
     .howto-title {
       font-size: 17px; font-weight: 600;
-      margin-bottom: 20px; color: #402D21;
+      margin-bottom: 20px; color: #1A1A1A;
     }
     .howto-step {
       display: flex; gap: 14px;
@@ -159,35 +159,35 @@
     }
     .howto-num {
       width: 28px; height: 28px; flex-shrink: 0;
-      background: #402D21; color: #fff;
+      background: #1A1A1A; color: #fff;
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       font-size: 13px; font-weight: 600;
-      font-family: 'Josefin Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
     }
-    .howto-step-text { font-size: 14px; line-height: 1.7; color: #402D21; }
+    .howto-step-text { font-size: 14px; line-height: 1.7; color: #1A1A1A; }
     .howto-step-text b { font-weight: 600; }
-    .howto-step-sub { font-size: 12px; color: #9a8878; margin-top: 2px; }
+    .howto-step-sub { font-size: 12px; color: #8A8680; margin-top: 2px; }
     .howto-divider {
-      border: none; border-top: 1px solid #EAD9C8;
+      border: none; border-top: 1px solid #E8E6E1;
       margin: 16px 0;
     }
     .howto-note {
-      background: #FFF8F2;
-      border: 1px solid #EAD9C8;
+      background: #F5F4F1;
+      border: 1px solid #E8E6E1;
       border-radius: 12px;
       padding: 14px 16px;
       font-size: 13px;
-      color: #6C4D38;
+      color: #55524C;
       line-height: 1.7;
     }
     .announce-box {
-      background: #F5EDE0;
-      border-left: 4px solid #CFB59E;
+      background: #F4F2EE;
+      border-left: 4px solid #D8D3C8;
       margin: 14px 16px 0;
       padding: 12px 16px;
       font-size: 13px;
-      color: #402D21;
+      color: #1A1A1A;
       line-height: 1.8;
       border-radius: 0 12px 12px 0;
       display: none;
@@ -198,9 +198,11 @@
     .flight-card {
       background: #fff;
       margin: 14px 16px 0;
-      border-radius: 18px;
-      border: 1px solid #EAD9C8;
-      padding: 18px 20px 16px;
+      border-radius: 0;
+      border: none;
+      border-top: 1px solid #E8E6E1;
+      border-bottom: 1px solid #E8E6E1;
+      padding: 18px 4px 16px;
       display: none;
     }
     .flight-card.show { display: block; }
@@ -208,7 +210,7 @@
       font-family: 'Noto Sans Thai', sans-serif;
       font-size: 14px;
       font-weight: 700;
-      color: #402D21;
+      color: #1A1A1A;
       margin-bottom: 12px;
       display: flex;
       align-items: center;
@@ -222,25 +224,25 @@
       margin-bottom: 0;
       align-items: start;
     }
-    .flight-divider { background: #EAD9C8; width: 1px; align-self: stretch; min-height: 56px; }
+    .flight-divider { background: #E8E6E1; width: 1px; align-self: stretch; min-height: 56px; }
     .flight-col { padding: 0 12px; }
     .flight-col:first-child { padding-left: 0; }
     .flight-col-label {
       font-size: 9px;
-      font-family: 'Josefin Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: #7a6355;
+      color: #8A8680;
       margin-bottom: 4px;
     }
     .flight-col-value {
-      font-family: 'Josefin Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 18px;
       font-weight: 700;
-      color: #2C1A0E;
+      color: #1A1A1A;
       line-height: 1.1;
     }
-    .flight-col-sub { font-size: 12px; color: #9a8878; margin-top: 3px; }
+    .flight-col-sub { font-size: 12px; color: #8A8680; margin-top: 3px; }
     .flight-status-badge {
       display: inline-flex;
       align-items: center;
@@ -249,19 +251,19 @@
       font-size: 13px;
       font-weight: 600;
       font-family: 'Noto Sans Thai', sans-serif;
-      background: #f0faf1;
-      color: #2e7d32;
-      border: 1px solid #c8e6c9;
+      background: #F4F2EE;
+      color: #1A1A1A;
+      border: 1px solid #E8E6E1;
     }
     .flight-notes-small {
       font-size: 12px;
-      color: #9a8878;
+      color: #8A8680;
       line-height: 1.6;
       display: flex;
       align-items: flex-start;
       gap: 5px;
       margin-top: 10px;
-      border-top: 1px solid #f0ebe4;
+      border-top: 1px solid #F0EEE9;
       padding-top: 10px;
     }
 
@@ -273,18 +275,18 @@
       padding: 24px 20px 0;
     }
     .section-head-title {
-      font-family: 'Josefin Sans', sans-serif;
-      font-size: 16px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
       font-weight: 600;
-      letter-spacing: 4px;
+      letter-spacing: 2px;
       text-transform: uppercase;
-      color: #402D21;
+      color: #1A1A1A;
     }
     .section-head-link {
       font-size: 12px;
-      color: #9a8878;
+      color: #8A8680;
       text-decoration: none;
-      font-family: 'Josefin Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       letter-spacing: 1px;
     }
 
@@ -309,25 +311,25 @@
       width: 58px; height: 58px;
       border-radius: 16px;
       background: #fff;
-      border: 1.5px solid #EAD9C8;
+      border: 1.5px solid #E8E6E1;
       display: flex; align-items: center; justify-content: center;
-      color: #6C4D38;
+      color: #55524C;
       transition: all 0.2s;
     }
     .cat-icon-wrap svg { width: 26px; height: 26px; }
     .cat-item.active .cat-icon-wrap {
-      background: #402D21;
-      border-color: #402D21;
+      background: #1A1A1A;
+      border-color: #1A1A1A;
       color: #fff;
     }
     .cat-label {
       font-size: 11px;
       font-family: 'Noto Sans Thai', sans-serif;
-      color: #7a6f65;
+      color: #8A8680;
       text-align: center;
       white-space: nowrap;
     }
-    .cat-item.active .cat-label { color: #402D21; font-weight: 600; }
+    .cat-item.active .cat-label { color: #1A1A1A; font-weight: 600; }
 
     /* ─── PRODUCTS GRID ─── */
     .products-grid {
@@ -345,7 +347,7 @@
       background: #fff;
       border-radius: 16px;
       overflow: hidden;
-      border: 1px solid #EAD9C8;
+      border: 1px solid #E8E6E1;
       cursor: pointer;
       opacity: 0;
       animation: fadeUp 0.35s ease forwards;
@@ -357,13 +359,13 @@
       width: 100%;
       height: 220px;
       object-fit: cover;
-      background: #f0ebe4;
+      background: #F0EEE9;
       display: block;
     }
     .product-img-placeholder {
       width: 100%;
       height: 220px;
-      background: linear-gradient(135deg, #EDE0D4, #DDE6ED);
+      background: #F0EEE9;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -382,10 +384,10 @@
       overflow: hidden;
     }
     .product-price {
-      font-family: 'Josefin Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 15px;
       font-weight: 600;
-      color: #6C4D38;
+      color: #1A1A1A;
     }
 
     /* ─── EMPTY / LOADING ─── */
@@ -442,7 +444,7 @@
       object-fit: contain;
       border-radius: 14px;
       display: block;
-      background: #F5EDE4;
+      background: #F0EEE9;
     }
     .gallery-arrow {
       position: absolute;
@@ -468,11 +470,11 @@
     .modal-gallery-dots span {
       width: 6px; height: 6px;
       border-radius: 50%;
-      background: #D4B89A;
+      background: #D8D3C8;
       transition: background 0.2s;
       cursor: pointer;
     }
-    .modal-gallery-dots span.active { background: #8B6F5C; }
+    .modal-gallery-dots span.active { background: #1A1A1A; }
     .modal-img {
       width: 100%;
       height: auto;
@@ -481,49 +483,49 @@
       border-radius: 14px;
       margin-bottom: 16px;
       display: block;
-      background: #F5EDE4;
+      background: #F0EEE9;
     }
     .modal-img-placeholder {
       width: 100%; height: 180px;
-      background: linear-gradient(135deg, #EDE0D4, #DDE6ED);
+      background: #F0EEE9;
       border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
       font-size: 56px; margin-bottom: 16px;
     }
     .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
-    .modal-desc { font-size: 13px; color: #888; margin-bottom: 16px; line-height: 1.6; }
+    .modal-desc { font-size: 13px; color: #7A776F; margin-bottom: 16px; line-height: 1.6; }
     .modal-price {
-      font-family: 'Josefin Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 24px;
       font-weight: 700;
-      color: #6C4D38;
+      color: #1A1A1A;
       margin-bottom: 20px;
     }
     .modal-actions { display: flex; gap: 10px; }
     /* variants in modal */
     .modal-variants { margin-bottom: 16px; }
-    .modal-variant-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+    .modal-variant-label { font-size: 12px; color: #7A776F; margin-bottom: 6px; }
     .modal-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .modal-chip {
-      padding: 6px 14px; border: 1.5px solid #EAD9C8; border-radius: 20px;
-      font-size: 13px; background: #fff; cursor: pointer; color: #402D21;
+      padding: 6px 14px; border: 1.5px solid #E8E6E1; border-radius: 20px;
+      font-size: 13px; background: #fff; cursor: pointer; color: #1A1A1A;
       font-family: 'Noto Sans Thai', sans-serif;
     }
-    .modal-chip.selected { background: #402D21; color: #fff; border-color: #402D21; }
+    .modal-chip.selected { background: #1A1A1A; color: #fff; border-color: #1A1A1A; }
     /* qty in modal */
     .modal-qty { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
-    .modal-qty-label { font-size: 13px; color: #666; flex: 1; }
+    .modal-qty-label { font-size: 13px; color: #6B6B66; flex: 1; }
     .modal-qty-ctrl { display: flex; align-items: center; gap: 12px; }
     .modal-qty-btn {
-      width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #CFB59E;
-      background: #fff; font-size: 18px; line-height: 1; cursor: pointer; color: #402D21;
+      width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #D8D3C8;
+      background: #fff; font-size: 18px; line-height: 1; cursor: pointer; color: #1A1A1A;
       display: flex; align-items: center; justify-content: center;
     }
     .modal-qty-num { font-size: 16px; font-weight: 600; min-width: 24px; text-align: center; }
     /* cart badge */
     .cart-badge {
       position: absolute; top: -4px; right: -6px;
-      background: #402D21; color: #fff;
+      background: #1A1A1A; color: #fff;
       font-size: 10px; font-weight: 700;
       min-width: 16px; height: 16px; border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
@@ -531,19 +533,19 @@
     }
     .btn-secondary {
       flex: 1; padding: 14px;
-      border: 1px solid #ddd7d0;
+      border: 1px solid #E8E6E1;
       border-radius: 12px;
       background: #fff;
       font-size: 14px;
       font-family: 'Noto Sans Thai', sans-serif;
       cursor: pointer;
-      color: #402D21;
+      color: #1A1A1A;
     }
     .btn-primary {
       flex: 2; padding: 14px;
       border: none;
       border-radius: 12px;
-      background: #402D21;
+      background: #1A1A1A;
       color: #fff;
       font-size: 14px;
       font-weight: 600;
@@ -556,7 +558,7 @@
       position: fixed;
       bottom: 0; left: 0; right: 0;
       background: #fff;
-      border-top: 1px solid #EAD9C8;
+      border-top: 1px solid #E8E6E1;
       display: flex;
       z-index: 50;
       padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -575,7 +577,7 @@
       font-family: 'Noto Sans Thai', sans-serif;
       transition: color 0.15s;
     }
-    .bottom-nav-item.active { color: #402D21; }
+    .bottom-nav-item.active { color: #1A1A1A; }
     .bottom-nav-item .nav-icon { line-height: 1; }
   </style>
 </head>
@@ -596,8 +598,7 @@
   <div class="hero-bg-overlay" id="heroBgOverlay" style="display:none"></div>
   <div class="hero-content">
     <div class="hero-brand">PICKED<br><span class="hero-and">AND</span>MORE</div>
-    <div class="hero-sub" id="heroSub">Japan Proxy Shopping</div>
-    <div class="hero-sub-th" id="heroSubTh">รับหิ้วสินค้าจากญี่ปุ่น · 日本から</div>
+    <div class="hero-sub-th" id="heroSubTh">รับหิ้วสินค้าจากญี่ปุ่น</div>
   </div>
 </section>
 
@@ -670,7 +671,7 @@
     </div>
 
     <button onclick="document.getElementById('howtoOverlay').classList.remove('open')"
-      style="margin-top:20px;width:100%;padding:14px;background:#402D21;color:#fff;border:none;border-radius:14px;font-family:'Noto Sans Thai',sans-serif;font-size:15px;cursor:pointer">
+      style="margin-top:20px;width:100%;padding:14px;background:#1A1A1A;color:#fff;border:none;border-radius:14px;font-family:'Noto Sans Thai',sans-serif;font-size:15px;cursor:pointer">
       เข้าใจแล้ว
     </button>
   </div>
@@ -1109,7 +1110,7 @@
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'addedToast';
-      toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#402D21;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:200;opacity:0;transition:opacity 0.3s';
+      toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:200;opacity:0;transition:opacity 0.3s';
       toast.textContent = '✓ เพิ่มในตะกร้าแล้ว';
       document.body.appendChild(toast);
     }
